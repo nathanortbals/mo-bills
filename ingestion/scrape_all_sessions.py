@@ -247,22 +247,23 @@ async def scrape_bills_for_session(year: int, session_code: str, description: st
                         print(f"  ⚠️  Could not scrape hearings: {e}")
                         details['hearings'] = ''
 
-                    # Download PDFs
+                    # Download PDFs and upload to Supabase Storage
+                    document_info = []
                     try:
                         pdf_dir = Path('bill_pdfs')
-                        downloaded = await scraper.download_bill_documents(
+                        document_info = await scraper.download_bill_documents(
                             bill_number,
                             details.get('bill_documents', ''),
                             pdf_dir
                         )
-                        details['downloaded_pdfs'] = '; '.join(downloaded)
+                        details['downloaded_pdfs'] = '; '.join([doc['local_path'] for doc in document_info])
                     except Exception as e:
                         print(f"  ⚠️  Could not download PDFs: {e}")
                         details['downloaded_pdfs'] = ''
 
-                    # Merge and insert to database
+                    # Merge and insert to database with document info (including storage paths)
                     merged = {**bill, **details}
-                    bill_id, was_updated = await scraper.insert_bill_to_db(merged)
+                    bill_id, was_updated = await scraper.insert_bill_to_db(merged, document_info)
 
                     if was_updated:
                         updated_count += 1

@@ -252,3 +252,33 @@ def get_session_legislator_by_name(
     if sl_response.data:
         return sl_response.data[0]['id']
     return None
+
+
+def upload_pdf_to_storage(
+    supabase: Client,
+    pdf_content: bytes,
+    storage_path: str,
+    bucket_name: str = 'bill-pdfs'
+) -> Optional[str]:
+    """
+    Upload a PDF to Supabase Storage.
+
+    Args:
+        supabase: Supabase client
+        pdf_content: PDF file content as bytes
+        storage_path: Path within bucket (e.g., "2016/R/HB1366/HB1366_Introduced.pdf")
+        bucket_name: Storage bucket name (default: 'bill-pdfs')
+
+    Returns:
+        Storage path if successful, None otherwise
+    """
+    try:
+        supabase.storage.from_(bucket_name).upload(
+            path=storage_path,
+            file=pdf_content,
+            file_options={'content-type': 'application/pdf', 'upsert': 'true'}
+        )
+        return storage_path
+    except Exception as e:
+        print(f"    Warning: Could not upload to storage: {e}")
+        return None

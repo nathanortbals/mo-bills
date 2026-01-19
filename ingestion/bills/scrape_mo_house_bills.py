@@ -6,12 +6,17 @@ Scrapes Missouri House of Representatives bills from the official website.
 import asyncio
 import os
 import re
+import sys
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 import httpx
 from playwright.async_api import async_playwright, Page, Browser
 from supabase import create_client, Client
 from dotenv import load_dotenv
+
+# Add parent directory to path for db_utils import
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from db_utils import upload_pdf_to_storage
 
 # Load environment variables from .env file
 load_dotenv()
@@ -48,6 +53,9 @@ class MoHouseBillScraper:
         # Cache for session legislators to avoid duplicate lookups
         self.session_legislator_cache: Dict[str, str] = {}  # Maps district -> session_legislator_id
         self.session_id: Optional[str] = None  # Will be set when scraping starts
+
+        # Storage bucket name for PDFs
+        self.storage_bucket = 'bill-pdfs'
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -586,24 +594,24 @@ class MoHouseBillScraper:
 
         return None
 
-    async def download_bill_documents(self, bill_number: str, documents_string: str, output_dir: Path) -> List[str]:
+    async def download_bill_documents(self, bill_number: str, documents_string: str, output_dir: Path) -> List[Dict[str, str]]:
         """
-        Download bill document PDFs.
+        Download bill document PDFs and upload to Supabase Storage.
 
         Args:
             bill_number: Bill number (e.g., HB1, HRM1)
             documents_string: Pipe-separated string of documents (type | url)
-            output_dir: Directory to save PDFs
+            output_dir: Directory to save PDFs locally
 
         Returns:
-            List of downloaded file paths
+            List of dictionaries with document info: {'type', 'url', 'local_path', 'storage_path'}
         """
         if not documents_string:
             return []
 
         # Parse the documents string
         document_pairs = documents_string.split(' || ')
-        downloaded_files = []
+        document_info = []
 
         # Create output directory for this bill
         bill_dir = output_dir / bill_number
@@ -628,22 +636,44 @@ class MoHouseBillScraper:
                     response = await client.get(doc_url)
                     response.raise_for_status()
 
-                    # Save PDF
-                    filepath.write_bytes(response.content)
-                    downloaded_files.append(str(filepath))
-                    print(f"    Saved to {filepath}")
+                    # Save PDF locally
+                    pdf_content = response.content
+                    filepath.write_bytes(pdf_content)
+                    print(f"    Saved locally to {filepath}")
+
+                    # Upload to Supabase Storage
+                    storage_path = None
+                    if self.supabase and self.session_id:
+                        # Create storage path: {year}/{session_code}/{bill_number}/{filename}
+                        storage_path_template = f"{self.year}/{self.session_code}/{bill_number}/{filename}"
+                        storage_path = upload_pdf_to_storage(
+                            self.supabase,
+                            pdf_content,
+                            storage_path_template,
+                            self.storage_bucket
+                        )
+                        if storage_path:
+                            print(f"    ✓ Uploaded to storage: {storage_path}")
+
+                    document_info.append({
+                        'type': doc_type,
+                        'url': doc_url,
+                        'local_path': str(filepath),
+                        'storage_path': storage_path
+                    })
 
                 except Exception as e:
                     print(f"    Error downloading {doc_type}: {e}")
 
-        return downloaded_files
+        return document_info
 
-    async def insert_bill_to_db(self, bill_data: Dict[str, Any]) -> tuple[str, bool]:
+    async def insert_bill_to_db(self, bill_data: Dict[str, Any], document_info: Optional[List[Dict[str, str]]] = None) -> tuple[str, bool]:
         """
         Insert or update a complete bill with all related data into the database.
 
         Args:
             bill_data: Dictionary containing all bill information
+            document_info: Optional list of document info dicts with 'type', 'url', 'storage_path'
 
         Returns:
             Tuple of (bill_id, was_updated) where was_updated is True if bill was updated, False if inserted
@@ -781,7 +811,20 @@ class MoHouseBillScraper:
                         print(f"  Warning: Could not insert hearing: {e}")
 
         # Insert bill documents
-        if bill_data.get('bill_documents'):
+        if document_info:
+            # Use the document_info with storage paths if provided
+            for doc_info in document_info:
+                try:
+                    self.supabase.table('bill_documents').insert({
+                        'bill_id': bill_id,
+                        'document_type': doc_info['type'],
+                        'document_url': doc_info['url'],
+                        'storage_path': doc_info.get('storage_path')
+                    }).execute()
+                except Exception as e:
+                    print(f"  Warning: Could not insert document: {e}")
+        elif bill_data.get('bill_documents'):
+            # Fallback to old format if no document_info provided
             documents = bill_data['bill_documents'].split(' || ')
             for doc_str in documents:
                 parts = doc_str.split(' | ')
@@ -791,7 +834,7 @@ class MoHouseBillScraper:
                             'bill_id': bill_id,
                             'document_type': parts[0].strip(),
                             'document_url': parts[1].strip(),
-                            'storage_path': None  # Will be updated when PDF is uploaded
+                            'storage_path': None
                         }).execute()
                     except Exception as e:
                         print(f"  Warning: Could not insert document: {e}")
@@ -876,15 +919,17 @@ async def main():
                     print(f"  Warning: Could not scrape hearings for {bill_number}: {e}")
                     details['hearings'] = ''
 
-                # Always download PDFs (for now, even with database mode)
+                # Always download PDFs and upload to Supabase Storage
+                document_info = []
                 try:
                     pdf_dir = Path(args.pdf_dir)
-                    downloaded = await scraper.download_bill_documents(
+                    document_info = await scraper.download_bill_documents(
                         bill_number,
                         details.get('bill_documents', ''),
                         pdf_dir
                     )
-                    details['downloaded_pdfs'] = '; '.join(downloaded)
+                    # Store local paths for backward compatibility
+                    details['downloaded_pdfs'] = '; '.join([doc['local_path'] for doc in document_info])
                 except Exception as e:
                     print(f"  Warning: Could not download PDFs for {bill_number}: {e}")
                     details['downloaded_pdfs'] = ''
@@ -893,9 +938,9 @@ async def main():
                 merged = {**bill, **details}
                 detailed_bills.append(merged)
 
-                # Insert to database
+                # Insert to database with document info (including storage paths)
                 try:
-                    bill_id, was_updated = await scraper.insert_bill_to_db(merged)
+                    bill_id, was_updated = await scraper.insert_bill_to_db(merged, document_info)
                     if was_updated:
                         print(f"  ✓ Updated in database with ID: {bill_id}")
                     else:
