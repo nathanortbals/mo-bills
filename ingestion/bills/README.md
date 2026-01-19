@@ -23,13 +23,15 @@ uv run playwright install chromium
 
 ## Usage
 
+The scraper automatically downloads comprehensive bill data including co-sponsors, actions, hearings, and PDF documents.
+
 ### Scrape Current Session Bills
 
 ```bash
 uv run python ingestion/bills/scrape_mo_house_bills.py
 ```
 
-This will scrape bills from the current legislative session and save to `mo-house-bills-current-R.csv`.
+This will scrape all bills from the current legislative session and save to `mo-house-bills-current-R.csv`.
 
 ### Scrape Specific Year
 
@@ -37,7 +39,7 @@ This will scrape bills from the current legislative session and save to `mo-hous
 uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023
 ```
 
-This will scrape bills from the 2023 regular session and save to `mo-house-bills-2023-R.csv`.
+This will scrape all bills from the 2023 regular session and save to `mo-house-bills-2023-R.csv`.
 
 ### Scrape Extraordinary Session
 
@@ -51,34 +53,20 @@ uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023 --session-cod
 uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023 --output my-bills.csv
 ```
 
-### Scrape Detailed Information
-
-By default, the script only scrapes the bill list. To get detailed information for each bill (slower):
-
-```bash
-uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023 --detailed
-```
-
 ### Test with Limited Bills
 
 To test the scraper with just a few bills:
 
 ```bash
-uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023 --detailed --limit 5
+uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023 --limit 5
 ```
 
-### Download Bill Text PDFs
+### Custom PDF Directory
 
-To download the actual bill text PDFs:
-
-```bash
-uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023 --detailed --download-pdfs
-```
-
-This will save PDFs to the `bill_pdfs/` directory, organized by bill number. You can specify a custom directory:
+By default, PDFs are saved to `bill_pdfs/`. You can specify a custom directory:
 
 ```bash
-uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023 --detailed --download-pdfs --pdf-dir my_pdfs
+uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023 --pdf-dir my_pdfs
 ```
 
 ## Command Line Options
@@ -86,39 +74,39 @@ uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023 --detailed --
 - `--year`: Legislative year (omit for current session)
 - `--session-code`: Session type - `R` for Regular (default), `E` for Extraordinary
 - `--output`: Custom output CSV filename
-- `--detailed`: Scrape detailed information for each bill (visits each bill's page)
 - `--limit`: Limit number of bills to scrape (useful for testing)
-- `--download-pdfs`: Download bill text PDFs (requires `--detailed`)
 - `--pdf-dir`: Directory to save PDFs (default: `bill_pdfs`)
 
 ## Output Format
 
-### Basic Mode (default)
+The script generates a comprehensive CSV file with the following columns:
 
-The script generates a CSV file with the following columns:
-
+### Basic Information
 - `bill_number`: Bill identifier (e.g., HB1607)
 - `bill_url`: URL to the bill's detail page
-- `sponsor`: Primary sponsor name
-- `sponsor_url`: URL to sponsor's profile
+- `title`: Full bill title
 - `description`: Brief description of the bill
 
-### Detailed Mode (--detailed flag)
+### Sponsor Information
+- `sponsor`: Primary sponsor name
+- `sponsor_url`: URL to sponsor's profile
+- `cosponsors`: Semicolon-separated list of co-sponsor names
 
-When using `--detailed`, additional columns are included:
-
-- `title`: Full bill title
+### Legislative Details
 - `lr_number`: Legislative Request number
+- `bill_string`: Bill identifier string
 - `last_action`: Most recent action taken on the bill
 - `proposed_effective_date`: When the bill would take effect
-- `bill_string`: Bill identifier string
 - `calendar_status`: Current calendar status
 - `hearing_status`: Next hearing information
-- `cosponsors`: Semicolon-separated list of co-sponsor names
+
+### Complete History
 - `actions`: Double-pipe-separated list of all bill actions (format: `date | description || date | description`)
 - `hearings`: Double-pipe-separated list of hearings (format: `committee | date | time | location || committee | date | time | location`)
+
+### Bill Documents
 - `bill_documents`: Double-pipe-separated list of bill document PDFs (format: `type | url || type | url`)
-- `downloaded_pdfs`: Semicolon-separated list of local PDF file paths (only when using `--download-pdfs`)
+- `downloaded_pdfs`: Semicolon-separated list of local PDF file paths
 
 ## Data Sources
 
@@ -132,11 +120,11 @@ When using `--detailed`, additional columns are included:
 ## Example
 
 ```bash
-# Scrape 2023 regular session
+# Scrape 2023 regular session with all details and PDFs
 uv run python ingestion/bills/scrape_mo_house_bills.py --year 2023 --output 2023-regular-session.csv
 ```
 
-This will create a CSV file similar to the existing `2022-regular-session.csv` in the repository root.
+This will create a comprehensive CSV file with all bill data and download bill text PDFs to the `bill_pdfs/` directory.
 
 ## Development
 

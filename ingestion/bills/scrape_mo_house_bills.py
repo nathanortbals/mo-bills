@@ -537,28 +537,19 @@ async def main():
                         help='Session code: R=Regular, E=Extraordinary')
     parser.add_argument('--output', type=str,
                         help='Output CSV file (default: mo-house-bills-{year}.csv)')
-    parser.add_argument('--detailed', action='store_true',
-                        help='Scrape detailed information for each bill (slower)')
     parser.add_argument('--limit', type=int,
                         help='Limit number of bills to scrape (useful for testing)')
-    parser.add_argument('--download-pdfs', action='store_true',
-                        help='Download bill text PDFs (requires --detailed)')
     parser.add_argument('--pdf-dir', type=str, default='bill_pdfs',
                         help='Directory to save downloaded PDFs (default: bill_pdfs)')
 
     args = parser.parse_args()
-
-    # Validate arguments
-    if args.download_pdfs and not args.detailed:
-        parser.error("--download-pdfs requires --detailed flag")
 
     # Determine output filename
     if args.output:
         output_file = Path(args.output)
     else:
         year_str = str(args.year) if args.year else 'current'
-        suffix = '-detailed' if args.detailed else ''
-        output_file = Path(f'mo-house-bills-{year_str}-{args.session_code}{suffix}.csv')
+        output_file = Path(f'mo-house-bills-{year_str}-{args.session_code}.csv')
 
     # Run scraper
     async with MoHouseBillScraper(year=args.year, session_code=args.session_code) as scraper:
@@ -573,65 +564,63 @@ async def main():
             bills = bills[:args.limit]
             print(f"Limited to first {args.limit} bills")
 
-        # Scrape detailed information if requested
-        if args.detailed:
-            print(f"Scraping detailed information for {len(bills)} bills...")
-            detailed_bills = []
+        # Always scrape detailed information
+        print(f"Scraping detailed information for {len(bills)} bills...")
+        detailed_bills = []
 
-            for i, bill in enumerate(bills, 1):
-                bill_number = bill['bill_number']
-                print(f"[{i}/{len(bills)}] Scraping details for {bill_number}...")
+        for i, bill in enumerate(bills, 1):
+            bill_number = bill['bill_number']
+            print(f"[{i}/{len(bills)}] Scraping details for {bill_number}...")
 
+            try:
+                details = await scraper.scrape_bill_details(bill_number)
+
+                # Scrape co-sponsors
                 try:
-                    details = await scraper.scrape_bill_details(bill_number)
-
-                    # Scrape co-sponsors
-                    try:
-                        cosponsors = await scraper.scrape_cosponsors(bill_number)
-                        details['cosponsors'] = cosponsors
-                    except Exception as e:
-                        print(f"  Warning: Could not scrape co-sponsors for {bill_number}: {e}")
-                        details['cosponsors'] = ''
-
-                    # Scrape bill actions
-                    try:
-                        actions = await scraper.scrape_bill_actions(bill_number)
-                        details['actions'] = actions
-                    except Exception as e:
-                        print(f"  Warning: Could not scrape actions for {bill_number}: {e}")
-                        details['actions'] = ''
-
-                    # Scrape bill hearings
-                    try:
-                        hearings = await scraper.scrape_bill_hearings(bill_number)
-                        details['hearings'] = hearings
-                    except Exception as e:
-                        print(f"  Warning: Could not scrape hearings for {bill_number}: {e}")
-                        details['hearings'] = ''
-
-                    # Download PDFs if requested
-                    if args.download_pdfs:
-                        try:
-                            pdf_dir = Path(args.pdf_dir)
-                            downloaded = await scraper.download_bill_documents(
-                                bill_number,
-                                details.get('bill_documents', ''),
-                                pdf_dir
-                            )
-                            details['downloaded_pdfs'] = '; '.join(downloaded)
-                        except Exception as e:
-                            print(f"  Warning: Could not download PDFs for {bill_number}: {e}")
-                            details['downloaded_pdfs'] = ''
-
-                    # Merge basic info with detailed info
-                    merged = {**bill, **details}
-                    detailed_bills.append(merged)
+                    cosponsors = await scraper.scrape_cosponsors(bill_number)
+                    details['cosponsors'] = cosponsors
                 except Exception as e:
-                    print(f"  Error scraping {bill_number}: {e}")
-                    # Keep the basic info even if detailed scraping fails
-                    detailed_bills.append(bill)
+                    print(f"  Warning: Could not scrape co-sponsors for {bill_number}: {e}")
+                    details['cosponsors'] = ''
 
-            bills = detailed_bills
+                # Scrape bill actions
+                try:
+                    actions = await scraper.scrape_bill_actions(bill_number)
+                    details['actions'] = actions
+                except Exception as e:
+                    print(f"  Warning: Could not scrape actions for {bill_number}: {e}")
+                    details['actions'] = ''
+
+                # Scrape bill hearings
+                try:
+                    hearings = await scraper.scrape_bill_hearings(bill_number)
+                    details['hearings'] = hearings
+                except Exception as e:
+                    print(f"  Warning: Could not scrape hearings for {bill_number}: {e}")
+                    details['hearings'] = ''
+
+                # Always download PDFs
+                try:
+                    pdf_dir = Path(args.pdf_dir)
+                    downloaded = await scraper.download_bill_documents(
+                        bill_number,
+                        details.get('bill_documents', ''),
+                        pdf_dir
+                    )
+                    details['downloaded_pdfs'] = '; '.join(downloaded)
+                except Exception as e:
+                    print(f"  Warning: Could not download PDFs for {bill_number}: {e}")
+                    details['downloaded_pdfs'] = ''
+
+                # Merge basic info with detailed info
+                merged = {**bill, **details}
+                detailed_bills.append(merged)
+            except Exception as e:
+                print(f"  Error scraping {bill_number}: {e}")
+                # Keep the basic info even if detailed scraping fails
+                detailed_bills.append(bill)
+
+        bills = detailed_bills
 
         if bills:
             save_to_csv(bills, output_file)
