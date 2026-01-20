@@ -220,21 +220,31 @@ class EmbeddingsPipeline:
             )
             total_embeddings += embeddings
 
+        # Mark bill as having embeddings generated if successful
+        if total_embeddings > 0:
+            self.db.mark_bill_embeddings_generated(bill_id)
+
         return total_embeddings
 
-    def process_session(self, session_id: str, limit: Optional[int] = None) -> tuple[int, int]:
+    def process_session(
+        self,
+        session_id: str,
+        limit: Optional[int] = None,
+        skip_embedded: bool = False
+    ) -> tuple[int, int]:
         """
         Process all bills in a session.
 
         Args:
             session_id: Session UUID
             limit: Optional limit on number of bills to process
+            skip_embedded: If True, skip bills that already have embeddings
 
         Returns:
             Tuple of (bills_processed, total_embeddings_created)
         """
         # Get all bills for session
-        bills = self.db.get_bills_for_session(session_id, limit=limit)
+        bills = self.db.get_bills_for_session(session_id, limit=limit, skip_embedded=skip_embedded)
 
         if not bills:
             print("No bills found for session")
@@ -261,6 +271,7 @@ def main():
     parser.add_argument('--year', type=int, required=True, help='Legislative year')
     parser.add_argument('--session-code', default='R', help='Session code (R, S1, S2)')
     parser.add_argument('--limit', type=int, help='Limit number of bills to process')
+    parser.add_argument('--skip-embedded', action='store_true', help='Skip bills that already have embeddings')
     args = parser.parse_args()
 
     # Initialize
@@ -274,7 +285,8 @@ def main():
     # Process bills
     bills_processed, total_embeddings = pipeline.process_session(
         session_id=session_id,
-        limit=args.limit
+        limit=args.limit,
+        skip_embedded=args.skip_embedded
     )
 
     print(f"\n{'='*80}")

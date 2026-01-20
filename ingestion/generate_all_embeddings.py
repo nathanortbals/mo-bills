@@ -124,7 +124,8 @@ def generate_embeddings_for_session(
     session_code: str,
     description: str,
     db: Database,
-    pipeline: EmbeddingsPipeline
+    pipeline: EmbeddingsPipeline,
+    skip_embedded: bool = True
 ) -> tuple[int, int]:
     """
     Generate embeddings for all bills in a session.
@@ -135,6 +136,7 @@ def generate_embeddings_for_session(
         description: Human-readable description
         db: Database instance
         pipeline: EmbeddingsPipeline instance
+        skip_embedded: Skip bills that already have embeddings (default: True)
 
     Returns:
         Tuple of (bills_processed, embeddings_created)
@@ -149,7 +151,10 @@ def generate_embeddings_for_session(
         print(f"Session ID: {session_id}")
 
         # Process all bills in the session
-        bills_processed, embeddings_created = pipeline.process_session(session_id)
+        bills_processed, embeddings_created = pipeline.process_session(
+            session_id,
+            skip_embedded=skip_embedded
+        )
 
         if bills_processed == 0:
             print(f"⚠️  No bills found for {description}")
@@ -171,10 +176,23 @@ def generate_embeddings_for_session(
 
 def main():
     """Main function to generate embeddings for all sessions."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Generate embeddings for all sessions')
+    parser.add_argument(
+        '--force',
+        action='store_true',
+        help='Re-generate embeddings even for bills that already have them'
+    )
+    args = parser.parse_args()
+
+    skip_embedded = not args.force
+
     print("="*80)
     print("MISSOURI HOUSE EMBEDDINGS GENERATOR - ALL SESSIONS (2026-2000)")
     print("="*80)
     print(f"\nTotal sessions to process: {len(SESSIONS)}")
+    print(f"Skip already embedded bills: {skip_embedded}")
     print("\nThis will:")
     print("- Extract text from bill PDFs in Supabase Storage")
     print("- Filter to 'Introduced' + most recent version (excludes fiscal notes)")
@@ -196,7 +214,7 @@ def main():
     for year, session_code, description in SESSIONS:
         try:
             bills_processed, embeddings_created = generate_embeddings_for_session(
-                year, session_code, description, db, pipeline
+                year, session_code, description, db, pipeline, skip_embedded=skip_embedded
             )
 
             overall_stats['total_bills_processed'] += bills_processed

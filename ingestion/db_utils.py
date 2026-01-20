@@ -373,18 +373,27 @@ class Database:
 
         return bill_id, was_updated
 
-    def get_bills_for_session(self, session_id: str, limit: Optional[int] = None) -> list[Dict[str, Any]]:
+    def get_bills_for_session(
+        self,
+        session_id: str,
+        limit: Optional[int] = None,
+        skip_embedded: bool = False
+    ) -> list[Dict[str, Any]]:
         """
         Get all bills for a specific session.
 
         Args:
             session_id: Session UUID
             limit: Optional limit on number of bills to return
+            skip_embedded: If True, only return bills without embeddings
 
         Returns:
             List of bill records with id and bill_number
         """
-        query = self._client.table('bills').select('id, bill_number').eq('session_id', session_id)
+        query = self._client.table('bills').select('id, bill_number, embeddings_generated').eq('session_id', session_id)
+
+        if skip_embedded:
+            query = query.or_('embeddings_generated.is.null,embeddings_generated.eq.false')
 
         if limit:
             query = query.limit(limit)
@@ -559,6 +568,18 @@ class Database:
             'cosponsors': cosponsors,
             'committees': committees
         }
+
+    def mark_bill_embeddings_generated(self, bill_id: str) -> None:
+        """
+        Mark a bill as having embeddings generated.
+
+        Args:
+            bill_id: Bill UUID
+        """
+        self._client.table('bills').update({
+            'embeddings_generated': True,
+            'embeddings_generated_at': 'now()'
+        }).eq('id', bill_id).execute()
 
     def download_from_storage(self, storage_path: str, bucket_name: str = 'bill-pdfs') -> bytes:
         """
