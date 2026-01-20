@@ -184,17 +184,27 @@ After generating embeddings, you can query bills using the AI agent in two ways:
 
 **Option 1: LangGraph Studio (Recommended)**
 
-1. Install [LangGraph Studio](https://github.com/langchain-ai/langgraph-studio)
+LangGraph Studio provides an interactive web UI for testing and debugging your agent. To use it:
 
-2. Open the `mo-bills` directory in LangGraph Studio
+1. Install the LangGraph CLI:
+   ```bash
+   pip install --upgrade "langgraph-cli[inmem]"
+   ```
 
-3. The agent will be automatically loaded from `langgraph.json`
+2. Start the development server from the project directory:
+   ```bash
+   langgraph dev
+   ```
 
-4. Start asking questions in the Studio UI:
+3. Open the Studio UI at: `https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024`
+
+4. Start asking questions in the Studio interface:
    - "What bills are about healthcare in 2026?"
    - "Tell me about HB 1366"
    - "Show me the timeline for HB 2146"
    - "What bills did Rep. Smith sponsor?"
+
+The agent configuration is already set up in `langgraph.json`. For detailed setup instructions, see the [LangGraph Studio documentation](https://docs.langchain.com/oss/python/langgraph/studio).
 
 **Option 2: Command Line**
 
