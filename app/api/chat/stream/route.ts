@@ -1,17 +1,13 @@
 import { getAgent } from '@/agent/graph';
 import { HumanMessage } from '@langchain/core/messages';
-import { LangChainAdapter } from 'ai';
 
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json();
+    const { message } = await req.json();
 
-    // Get the latest user message
-    const userMessage = messages[messages.length - 1]?.content;
-
-    if (!userMessage) {
+    if (!message) {
       return new Response('No message provided', { status: 400 });
     }
 
@@ -20,32 +16,36 @@ export async function POST(req: Request) {
 
     // Stream the agent's response
     const stream = await agent.stream({
-      messages: [new HumanMessage(userMessage)],
+      messages: [new HumanMessage(message)],
     });
 
-    // Convert LangChain stream to Vercel AI SDK format
+    // Create a text stream from LangChain
     const encoder = new TextEncoder();
     const readableStream = new ReadableStream({
       async start(controller) {
         try {
+          let previousContent = '';
+
           for await (const chunk of stream) {
-            // Extract messages from each chunk
             const messages = chunk.messages || [];
             if (messages.length > 0) {
               const lastMessage = messages[messages.length - 1];
 
-              // Stream content tokens
               if (lastMessage.content) {
-                const content = typeof lastMessage.content === 'string'
+                const currentContent = typeof lastMessage.content === 'string'
                   ? lastMessage.content
                   : JSON.stringify(lastMessage.content);
 
-                // Send as SSE format for AI SDK compatibility
-                const data = `0:${JSON.stringify(content)}\n`;
-                controller.enqueue(encoder.encode(data));
+                // Only send the new content (delta)
+                if (currentContent.length > previousContent.length) {
+                  const delta = currentContent.slice(previousContent.length);
+                  controller.enqueue(encoder.encode(delta));
+                  previousContent = currentContent;
+                }
               }
             }
           }
+
           controller.close();
         } catch (error) {
           console.error('Stream error:', error);
@@ -57,7 +57,8 @@ export async function POST(req: Request) {
     return new Response(readableStream, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
       },
     });
   } catch (error) {
