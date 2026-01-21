@@ -4,23 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MO Bills is an AI-powered chatbot for querying Missouri House of Representatives bills using RAG (Retrieval-Augmented Generation). The project scrapes legislative data, generates vector embeddings, and provides a LangGraph agent for natural language queries.
+MO Bills is an AI-powered chatbot for querying Missouri House of Representatives bills using RAG (Retrieval-Augmented Generation). The project scrapes legislative data, generates vector embeddings, and provides a Next.js application with a LangGraph.js agent for natural language queries.
 
-**Current Phase**: Phase 3 complete (AI Agent). Next phases: FastAPI backend, React frontend.
+**Current Phase**: Phase 3 complete (AI Agent with Next.js). Next phases: UI improvements, production deployment.
 
 ## Architecture
 
 ### Three-Layer System
 
-1. **Ingestion Layer** (`ingestion/`)
+1. **Ingestion Layer** (`ingestion/` - Python)
    - Scrapes legislators and bills from Missouri House website using Playwright
    - Stores data in Supabase PostgreSQL + pgvector
    - Generates embeddings for semantic search
+   - Uses UV for package management
 
-2. **RAG Layer** (`agent/`)
-   - LangGraph agent with 6 specialized tools
+2. **Application Layer** (`app/` - TypeScript/Next.js)
+   - Next.js 15 full-stack application
+   - LangGraph.js agent with 6 specialized tools
    - Uses GPT-4o for reasoning and OpenAI embeddings (text-embedding-3-small)
    - Semantic search via pgvector similarity
+   - API routes for chat functionality
 
 3. **Storage Layer** (Supabase)
    - PostgreSQL with pgvector extension
@@ -41,14 +44,14 @@ MO Bills is an AI-powered chatbot for querying Missouri House of Representatives
 
 ### Setup
 ```bash
-# Install dependencies
+# Install Python dependencies (ingestion)
+cd ingestion
 uv sync
-
-# Install Playwright browsers (required for scraping)
 uv run playwright install chromium
 
-# Install dev dependencies (includes LangGraph CLI)
-uv sync --group dev
+# Install Next.js dependencies (app)
+cd ../app
+npm install
 ```
 
 ### Scraping
@@ -87,17 +90,27 @@ uv run python ingestion/generate_all_embeddings.py
 uv run python ingestion/generate_all_embeddings.py --force
 ```
 
-### AI Agent
+### Next.js App & AI Agent
 
-**LangGraph Studio (recommended for development):**
+**Development server:**
 ```bash
-uv run langgraph dev
-# Open https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024
+cd app
+npm run dev
+# Open http://localhost:3000
 ```
 
-**Command line:**
+**Build for production:**
 ```bash
-uv run python -m agent.graph "What bills are about healthcare in 2026?"
+cd app
+npm run build
+npm start
+```
+
+**Test API endpoint:**
+```bash
+curl -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What bills are about healthcare?"}'
 ```
 
 ### Database Migrations
@@ -120,30 +133,47 @@ Text preprocessing and chunking logic:
 - `chunk_by_sentences()` - For summaries (adds overlap)
 - `chunk_document()` - Auto-detects type and applies appropriate strategy
 
-### `agent/tools.py`
-Agent tools using `@tool` decorator. Important patterns:
+### `app/lib/agent/tools.ts`
+Agent tools using LangChain's `tool()` function. Important patterns:
 - Bill numbers must be normalized: "HB1366" → "HB 1366" (database uses spaces)
-- Uses global singletons `_db` and `_vector_store` (class methods don't work with LangChain)
-- Semantic search calls RPC directly (SupabaseVectorStore has compatibility issues)
+- Uses `normalizeBillNumber()` helper function for consistent formatting
+- Semantic search calls Supabase RPC function `match_bill_embeddings` directly
+- Each tool has zod schema for type safety
+- Returns formatted strings optimized for LLM consumption
 
-### `agent/graph.py`
-LangGraph agent implementation. Simple ReAct loop:
+### `app/lib/agent/graph.ts`
+LangGraph.js agent implementation. Simple ReAct loop:
 ```
 Agent → Tools → Agent → Response
 ```
+Uses `StateGraph` with `MessagesAnnotation` for state management.
+
+### `app/lib/db.ts`
+Database client singleton. Uses `@supabase/supabase-js` for all database operations.
+
+### `app/app/api/chat/route.ts`
+Next.js API route for chat interactions. Receives POST requests with a message and returns agent responses.
 
 ## Environment Variables
 
-Required in `.env`:
+**Required in `ingestion/.env` (Python):**
 ```bash
 SUPABASE_URL=your-supabase-url
 SUPABASE_KEY=your-supabase-key
 OPENAI_API_KEY=your-openai-key
 ```
 
-Optional for LangGraph Studio:
+**Required in `app/.env.local` (Next.js):**
+```bash
+SUPABASE_URL=your-supabase-url
+SUPABASE_KEY=your-supabase-key
+OPENAI_API_KEY=your-openai-key
+```
+
+**Optional (for both):**
 ```bash
 LANGSMITH_API_KEY=your-langsmith-key  # For tracing
+LANGSMITH_TRACING=true  # Enable tracing
 ```
 
 ## Database Schema Notes

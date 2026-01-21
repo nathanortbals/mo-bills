@@ -59,16 +59,18 @@ This project aims to make Missouri legislative information accessible and querya
 ## Technology Stack
 
 **Current:**
-- **Python 3.9+** - Core language
+- **Python 3.9+** - Data ingestion and embeddings
 - **Playwright** - Web scraping and automation
 - **UV** - Fast Python package management
 - **Supabase** - PostgreSQL database with pgvector extension
-- **LangGraph/LangChain** - AI agent orchestration with RAG
+- **LangGraph.js** - AI agent orchestration with RAG
 - **OpenAI** - Embeddings (text-embedding-3-small) and LLM (GPT-4o)
+- **Next.js 15** - Full-stack React framework with TypeScript
+- **Tailwind CSS** - Styling
 
-**Planned:**
-- **FastAPI** - REST API backend
-- **React** - Frontend user interface
+**Future:**
+- Additional UI features and optimizations
+- Deployment to production
 
 ## Project Roadmap
 
@@ -105,7 +107,8 @@ This project aims to make Missouri legislative information accessible and querya
 ### Prerequisites
 
 - Python 3.9 or higher
-- [UV](https://github.com/astral-sh/uv) package manager
+- [UV](https://github.com/astral-sh/uv) package manager (for ingestion)
+- Node.js 18+ and npm (for Next.js app)
 
 ### Installation
 
@@ -115,19 +118,29 @@ git clone https://github.com/nathanortbals/mo-bills.git
 cd mo-bills
 ```
 
-2. Install dependencies:
+2. **Install Python dependencies** (for scraping/embeddings):
 ```bash
+cd ingestion
 uv sync
-```
-
-3. Install Playwright browsers:
-```bash
 uv run playwright install chromium
 ```
 
-4. Configure environment variables:
+3. **Install Next.js dependencies** (for app):
+```bash
+cd ../app
+npm install
+```
 
-Create a `.env` file in the project root:
+4. **Configure environment variables**:
+
+Create `.env` file in `ingestion/` directory:
+```bash
+SUPABASE_URL=your-project-url
+SUPABASE_KEY=your-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+Create `.env.local` file in `app/` directory:
 ```bash
 SUPABASE_URL=your-project-url
 SUPABASE_KEY=your-api-key
@@ -185,43 +198,26 @@ The pipeline will:
 - Generate embeddings via OpenAI text-embedding-3-small
 - Store with comprehensive metadata (sponsors, committees, session info)
 
-#### Using the AI Agent
+#### Using the Next.js App
 
-After generating embeddings, you can query bills using the AI agent in two ways:
+After generating embeddings, you can interact with the AI agent through the Next.js web application:
 
-**Option 1: LangGraph Studio (Recommended)**
-
-LangGraph Studio provides an interactive web UI for testing and debugging your agent. To use it:
-
-1. Install dev dependencies (includes LangGraph CLI):
+1. Start the Next.js development server:
    ```bash
-   uv sync --group dev
+   cd app
+   npm run dev
    ```
 
-2. Start the development server from the project directory:
-   ```bash
-   uv run langgraph dev
-   ```
+2. Open your browser to `http://localhost:3000`
 
-3. Open the Studio UI at: `https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024`
-
-4. Start asking questions in the Studio interface:
+3. Start asking questions through the chat interface:
    - "What bills are about healthcare in 2026?"
    - "Tell me about HB 1366"
    - "Show me the timeline for HB 2146"
    - "What bills did Rep. Smith sponsor?"
 
-The agent configuration is already set up in `langgraph.json`. For detailed setup instructions, see the [LangGraph Studio documentation](https://docs.langchain.com/oss/python/langgraph/studio).
-
-**Option 2: Command Line**
-
-Run the agent directly from the command line:
-
-```bash
-uv run python -m agent.graph "What bills are about education funding?"
-```
-
 **Available Agent Tools:**
+The AI agent has access to 6 specialized tools:
 - `search_bills_semantic` - Find bills by topic using vector search
 - `get_bill_by_number` - Get detailed information about a specific bill
 - `get_legislator_info` - Look up legislator details
@@ -229,7 +225,13 @@ uv run python -m agent.graph "What bills are about education funding?"
 - `get_committee_hearings` - Find hearing information
 - `search_bills_by_year` - Search bills by session year
 
-For detailed agent documentation, see [agent/README.md](agent/README.md)
+**API Endpoint:**
+You can also interact with the agent programmatically via the API:
+```bash
+curl -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What bills are about education funding?"}'
+```
 
 For detailed usage instructions and options, see:
 - [Legislator Scraper Documentation](ingestion/legislators/README.md)
@@ -237,8 +239,8 @@ For detailed usage instructions and options, see:
 
 ## Documentation
 
-- **[AI Agent](agent/README.md)** - Agent capabilities, tools, and usage examples
 - **[Database Schema](DATABASE_SCHEMA.md)** - Complete schema documentation with table definitions, relationships, and example queries
+- **[Claude Code Guidance](CLAUDE.md)** - Development guidance for working with this codebase
 - **[Legislator Scraper](ingestion/legislators/README.md)** - Scraper usage, options, and data sources
 - **[Bill Scraper](ingestion/bills/README.md)** - Scraper usage, options, and data sources
 
@@ -246,27 +248,35 @@ For detailed usage instructions and options, see:
 
 ```
 mo-bills/
-├── agent/
-│   ├── graph.py                    # LangGraph agent implementation
-│   ├── tools.py                    # Agent tools (search, lookup, etc.)
-│   └── README.md                   # Agent documentation
-├── ingestion/
-│   ├── bills/                      # Bill scraper
-│   ├── legislators/                # Legislator scraper
-│   ├── embeddings/                 # Embeddings pipeline
-│   │   ├── chunking.py             # Text chunking strategies
-│   │   └── embeddings_pipeline.py  # Main embeddings pipeline
-│   ├── scrape_all_sessions.py      # Batch scraper for all sessions
-│   ├── generate_all_embeddings.py  # Batch embeddings generator
-│   └── db_utils.py                 # Shared database utilities
+├── app/                            # Next.js application
+│   ├── app/                        # Next.js app directory
+│   │   ├── api/chat/              # Chat API endpoint
+│   │   └── ...                    # Pages and components
+│   ├── lib/
+│   │   ├── agent/                 # TypeScript agent implementation
+│   │   │   ├── graph.ts          # LangGraph agent
+│   │   │   └── tools.ts          # Agent tools
+│   │   └── db.ts                 # Database utilities
+│   ├── package.json              # Node.js dependencies
+│   └── .env.local                # Environment variables (gitignored)
+├── ingestion/                     # Python data ingestion
+│   ├── bills/                    # Bill scraper
+│   ├── legislators/              # Legislator scraper
+│   ├── embeddings/               # Embeddings pipeline
+│   │   ├── chunking.py          # Text chunking strategies
+│   │   └── embeddings_pipeline.py # Main embeddings pipeline
+│   ├── scrape_all_sessions.py   # Batch scraper for all sessions
+│   ├── generate_all_embeddings.py # Batch embeddings generator
+│   ├── db_utils.py              # Shared database utilities
+│   ├── pyproject.toml           # Python dependencies
+│   ├── uv.lock                  # UV lockfile
+│   └── .venv/                   # Python virtual environment
 ├── database/
-│   └── migrations/                 # Database migrations
-├── bill_pdfs/                      # Downloaded PDFs (gitignored)
-├── langgraph.json                  # LangGraph Studio configuration
-├── DATABASE_SCHEMA.md              # Database documentation
-├── pyproject.toml                  # Project dependencies
-├── .env                            # Credentials (gitignored)
-└── README.md                       # This file
+│   └── migrations/              # Database migrations
+├── bill_pdfs/                   # Downloaded PDFs (gitignored)
+├── DATABASE_SCHEMA.md           # Database documentation
+├── CLAUDE.md                    # Claude Code guidance
+└── README.md                    # This file
 ```
 
 ## Contributing
