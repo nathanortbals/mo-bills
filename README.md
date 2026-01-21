@@ -209,7 +209,7 @@ npm install -g @langchain/langgraph-cli
 # Using Desktop App: File -> Open Project -> select mo-bills directory
 
 # Using CLI:
-langgraph dev
+langgraphjs dev
 ```
 
 4. In the Studio interface:
