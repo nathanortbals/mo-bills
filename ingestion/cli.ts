@@ -208,11 +208,17 @@ program
 program
   .command('scrape-all')
   .description('Scrape all sessions from 2026 to 2000 (legislators + bills)')
-  .action(async () => {
+  .option('--start-year <year>', 'Start from a specific year and work backwards', '2026')
+  .action(async (options) => {
+    const startYear = parseInt(options.startYear);
+
+    // Filter sessions to start from specified year
+    const sessionsToProcess = SESSIONS.filter(s => s.year <= startYear);
+
     console.log('='.repeat(80));
-    console.log('MISSOURI HOUSE SCRAPER - ALL SESSIONS (2026-2000)');
+    console.log(`MISSOURI HOUSE SCRAPER - SESSIONS (${startYear}-2000)`);
     console.log('='.repeat(80));
-    console.log(`\nTotal sessions to process: ${SESSIONS.length}`);
+    console.log(`\nTotal sessions to process: ${sessionsToProcess.length}`);
 
     const db = new DatabaseClient();
 
@@ -225,7 +231,7 @@ program
       billsUpdated: 0,
     };
 
-    for (const { year, sessionCode, description } of SESSIONS) {
+    for (const { year, sessionCode, description } of sessionsToProcess) {
       try {
         // Step 1: Scrape legislators
         console.log(`\n${'='.repeat(80)}`);
@@ -253,7 +259,7 @@ program
     console.log('\n' + '='.repeat(80));
     console.log('FINAL SUMMARY');
     console.log('='.repeat(80));
-    console.log(`Sessions processed: ${stats.sessionsProcessed}/${SESSIONS.length}`);
+    console.log(`Sessions processed: ${stats.sessionsProcessed}/${sessionsToProcess.length}`);
     console.log(`Sessions failed: ${stats.sessionsFailed}`);
     console.log('='.repeat(80));
   });
@@ -262,14 +268,19 @@ program
 program
   .command('generate-all-embeddings')
   .description('Generate embeddings for all sessions from 2026 to 2000')
+  .option('--start-year <year>', 'Start from a specific year and work backwards', '2026')
   .option('--force', 'Re-generate embeddings for bills that already have them', false)
   .action(async (options) => {
+    const startYear = parseInt(options.startYear);
     const skipEmbedded = !options.force;
 
+    // Filter sessions to start from specified year
+    const sessionsToProcess = SESSIONS.filter(s => s.year <= startYear);
+
     console.log('='.repeat(80));
-    console.log('MISSOURI HOUSE EMBEDDINGS GENERATOR - ALL SESSIONS (2026-2000)');
+    console.log(`MISSOURI HOUSE EMBEDDINGS GENERATOR - SESSIONS (${startYear}-2000)`);
     console.log('='.repeat(80));
-    console.log(`\nTotal sessions to process: ${SESSIONS.length}`);
+    console.log(`\nTotal sessions to process: ${sessionsToProcess.length}`);
     console.log(`Skip already embedded bills: ${skipEmbedded}`);
     console.log('\nThis will:');
     console.log('- Extract text from bill PDFs in Supabase Storage');
@@ -287,7 +298,7 @@ program
       totalEmbeddingsCreated: 0,
     };
 
-    for (const { year, sessionCode, description } of SESSIONS) {
+    for (const { year, sessionCode, description } of sessionsToProcess) {
       try {
         console.log(`\n${'='.repeat(80)}`);
         console.log(`GENERATING EMBEDDINGS: ${description}`);
@@ -323,7 +334,7 @@ program
     console.log('\n' + '='.repeat(80));
     console.log('FINAL SUMMARY');
     console.log('='.repeat(80));
-    console.log(`Sessions processed: ${stats.sessionsProcessed}/${SESSIONS.length}`);
+    console.log(`Sessions processed: ${stats.sessionsProcessed}/${sessionsToProcess.length}`);
     console.log(`Sessions failed/empty: ${stats.sessionsFailed}`);
     console.log(`\nBills processed: ${stats.totalBillsProcessed}`);
     console.log(`Total embeddings created: ${stats.totalEmbeddingsCreated}`);
