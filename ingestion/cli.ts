@@ -5,6 +5,12 @@
  * Provides commands for scraping legislators, bills, and generating embeddings.
  */
 
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Load environment variables from .env.local
+config({ path: resolve(process.cwd(), '.env.local') });
+
 import { Command } from 'commander';
 import { runLegislatorScraper } from './legislators/scraper';
 import { scrapeBillsForSession } from './bills/scraper';
