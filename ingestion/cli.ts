@@ -195,13 +195,13 @@ program
       const sessionId = await db.getOrCreateSession(year, sessionCode);
       console.log(`Session ID: ${sessionId}`);
 
-      const result = await processSession(sessionId, { skipEmbedded });
+      const result = await processSession(sessionId, undefined, skipEmbedded);
 
       console.log('\n✅ Embeddings generation complete');
       console.log(`   Bills processed: ${result.billsProcessed}`);
-      console.log(`   Embeddings created: ${result.embeddingsCreated}`);
+      console.log(`   Embeddings created: ${result.totalEmbeddings}`);
       if (result.billsProcessed > 0) {
-        const avg = result.embeddingsCreated / result.billsProcessed;
+        const avg = result.totalEmbeddings / result.billsProcessed;
         console.log(`   Average per bill: ${avg.toFixed(1)}`);
       }
     } catch (error) {
@@ -313,7 +313,7 @@ program
         const sessionId = await db.getOrCreateSession(year, sessionCode);
         console.log(`Session ID: ${sessionId}`);
 
-        const result = await processSession(sessionId, { skipEmbedded });
+        const result = await processSession(sessionId, undefined, skipEmbedded);
 
         if (result.billsProcessed === 0) {
           console.log(`⚠️  No bills found for ${description}`);
@@ -321,13 +321,13 @@ program
         } else {
           console.log(`\n✅ Embeddings complete for ${description}`);
           console.log(`   Bills processed: ${result.billsProcessed}`);
-          console.log(`   Embeddings created: ${result.embeddingsCreated}`);
-          const avg = result.embeddingsCreated / result.billsProcessed;
+          console.log(`   Embeddings created: ${result.totalEmbeddings}`);
+          const avg = result.totalEmbeddings / result.billsProcessed;
           console.log(`   Average per bill: ${avg.toFixed(1)}`);
 
           stats.sessionsProcessed++;
           stats.totalBillsProcessed += result.billsProcessed;
-          stats.totalEmbeddingsCreated += result.embeddingsCreated;
+          stats.totalEmbeddingsCreated += result.totalEmbeddings;
         }
       } catch (error) {
         console.error(`\n❌ FATAL ERROR processing ${description}:`, error);
