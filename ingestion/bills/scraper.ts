@@ -427,21 +427,6 @@ export class MoHouseBillScraper {
         }
       }
 
-      // Helper function to extract labeled data
-      const extractLabeledData = (labelText: string): string => {
-        const elements = Array.from(document.querySelectorAll('main *'));
-        for (let i = 0; i < elements.length; i++) {
-          const el = elements[i];
-          if (el.textContent?.trim() === labelText) {
-            const nextEl = elements[i + 1];
-            if (nextEl) {
-              return nextEl.textContent?.trim() || '';
-            }
-          }
-        }
-        return '';
-      };
-
       // Extract sponsor
       const sponsorLink = document.querySelector('a[href*="MemberDetails"]');
       if (sponsorLink) {
@@ -449,13 +434,28 @@ export class MoHouseBillScraper {
         details.sponsor_url = (sponsorLink as HTMLAnchorElement).href;
       }
 
-      // Extract various fields
-      details.proposed_effective_date = extractLabeledData('Proposed Effective Date:');
-      details.lr_number = extractLabeledData('LR Number:');
-      details.last_action = extractLabeledData('Last Action:');
-      details.bill_string = extractLabeledData('Bill String:');
-      details.hearing_status = extractLabeledData('Next House Hearing:');
-      details.calendar_status = extractLabeledData('Calendar:');
+      // Extract various labeled fields by searching for label text
+      const allElements = Array.from(document.querySelectorAll('main *'));
+      const labels = {
+        'Proposed Effective Date:': 'proposed_effective_date',
+        'LR Number:': 'lr_number',
+        'Last Action:': 'last_action',
+        'Bill String:': 'bill_string',
+        'Next House Hearing:': 'hearing_status',
+        'Calendar:': 'calendar_status'
+      };
+
+      for (let i = 0; i < allElements.length; i++) {
+        const el = allElements[i];
+        const text = el.textContent?.trim() || '';
+        if (text in labels) {
+          const nextEl = allElements[i + 1];
+          if (nextEl) {
+            const fieldName = labels[text as keyof typeof labels];
+            details[fieldName] = nextEl.textContent?.trim() || '';
+          }
+        }
+      }
 
       // Extract bill documents
       const billDocuments = document.getElementById('BillDocuments');
