@@ -4,10 +4,10 @@
  * Implements a simple ReAct-style agent with tool calling.
  */
 
-import { StateGraph, END, MessagesAnnotation } from '@langchain/langgraph';
+import { StateGraph, END, MessagesAnnotation, MemorySaver } from '@langchain/langgraph';
 import { ToolNode } from '@langchain/langgraph/prebuilt';
 import { ChatOpenAI } from '@langchain/openai';
-import { HumanMessage } from '@langchain/core/messages';
+import { HumanMessage, BaseMessage } from '@langchain/core/messages';
 import { getTools } from './tools';
 
 /**
@@ -30,7 +30,7 @@ export function createAgent() {
 
   // Define conditional edge function
   function shouldContinue(state: typeof MessagesAnnotation.State) {
-    const messages = state.messages;
+    const messages = state.messages as BaseMessage[];
     const lastMessage = messages[messages.length - 1];
 
     // If there are no tool calls, end
@@ -56,8 +56,9 @@ export function createAgent() {
     })
     .addEdge('tools', 'agent');
 
-  // Compile graph
-  return workflow.compile();
+  // Compile graph with memory saver for LangGraph Studio
+  const checkpointer = new MemorySaver();
+  return workflow.compile({ checkpointer });
 }
 
 /**
@@ -89,4 +90,7 @@ export function getAgent() {
 }
 
 // Export compiled graph for LangGraph Studio
-export const graph = createAgent();
+// Use default export so Studio can easily discover it
+const graph = createAgent();
+export default graph;
+export { graph };
