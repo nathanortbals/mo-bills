@@ -244,14 +244,14 @@ program
         console.log(`SCRAPING LEGISLATORS: ${description}`);
         console.log('='.repeat(80));
 
-        await runLegislatorScraper({ year, sessionCode });
+        await runLegislatorScraper({ year, sessionCode }, db);
 
         // Step 2: Scrape bills
         console.log(`\n${'='.repeat(80)}`);
         console.log(`SCRAPING BILLS: ${description}`);
         console.log('='.repeat(80));
 
-        await scrapeBillsForSession({ year, sessionCode });
+        await scrapeBillsForSession({ year, sessionCode }, db);
 
         stats.sessionsProcessed++;
       } catch (error) {

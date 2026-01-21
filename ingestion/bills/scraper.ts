@@ -841,20 +841,19 @@ export class MoHouseBillScraper {
 /**
  * Convenience function to scrape bills for a session.
  *
- * @param year - Legislative year (omit for current session)
- * @param sessionCode - Session code ('R', 'S1', 'S2')
- * @param db - Database instance
- * @param limit - Optional limit on number of bills to scrape
- * @param pdfDir - Directory to save downloaded PDFs
+ * @param options - Scraper options (year, sessionCode, limit, pdfDir)
+ * @param db - Optional database instance (creates one if not provided)
  */
 export async function scrapeBillsForSession(
-  year: number | undefined,
-  sessionCode: string,
-  db: DatabaseClient,
-  limit?: number,
-  pdfDir: string = 'bill_pdfs'
+  options: { year?: number; sessionCode?: string; limit?: number; pdfDir?: string } = {},
+  db?: DatabaseClient
 ): Promise<void> {
-  const scraper = new MoHouseBillScraper({ year, sessionCode, db });
+  const { year, sessionCode = 'R', limit, pdfDir = 'bill_pdfs' } = options;
+
+  // Get or create Database instance
+  const database = db || new DatabaseClient();
+
+  const scraper = new MoHouseBillScraper({ year, sessionCode, db: database });
 
   try {
     await scraper.start();
