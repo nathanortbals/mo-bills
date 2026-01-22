@@ -29,3 +29,16 @@ Adds tracking fields to the bills table to record when embeddings were generated
 Adds a text field for hearing times that can't be parsed as TIME.
 
 **Status**: Should already be applied if you've scraped bills.
+
+### add_filtered_embeddings_search.sql
+Creates an enhanced vector similarity search function with metadata filtering support.
+
+**Features added:**
+- `match_bill_embeddings_filtered` function - Extends the base semantic search with optional filters
+- Filter by session year and session code
+- Filter by primary sponsor name (partial match)
+- Filter by committee name (exact match on array)
+
+**Use case**: Enables queries like "healthcare bills from 2025 sponsored by Smith" or "education bills in Ways and Means committee"
+
+**To apply**: Copy and run the SQL in your Supabase dashboard SQL Editor.

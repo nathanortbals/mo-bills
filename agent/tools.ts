@@ -16,10 +16,10 @@ function normalizeBillNumber(billNumber: string): string {
 }
 
 /**
- * Search for bills using semantic similarity
+ * Search for bills using semantic similarity with optional metadata filters
  */
 export const searchBillsSemantic = tool(
-  async ({ query, limit = 5 }) => {
+  async ({ query, limit = 5, sessionYear, sessionCode, sponsorName, committeeName }) => {
     const supabase = getSupabaseClient();
 
     // Generate embedding for query
@@ -28,15 +28,24 @@ export const searchBillsSemantic = tool(
     });
     const queryEmbedding = await embeddings.embedQuery(query);
 
-    // Call RPC function directly for vector similarity search
-    const { data, error } = await supabase.rpc('match_bill_embeddings', {
+    // Call RPC function with optional filters
+    const { data, error } = await supabase.rpc('match_bill_embeddings_filtered', {
       query_embedding: queryEmbedding,
       match_count: limit,
       match_threshold: 0.3,
+      filter_session_year: sessionYear || null,
+      filter_session_code: sessionCode || null,
+      filter_sponsor_name: sponsorName || null,
+      filter_committee_name: committeeName || null,
     });
 
-    if (error || !data || data.length === 0) {
-      return 'No bills found matching that query.';
+    if (error) {
+      console.error('Semantic search error:', error);
+      return 'Error searching bills. Please try again.';
+    }
+
+    if (!data || data.length === 0) {
+      return 'No bills found matching that query with the given filters.';
     }
 
     // Format results
@@ -44,10 +53,18 @@ export const searchBillsSemantic = tool(
       const meta = row.metadata || {};
       const content = row.content || '';
 
+      // Build co-sponsors string if available
+      const cosponsors = meta.cosponsor_names ? meta.cosponsor_names.slice(0, 3).join(', ') : '';
+      const cosponsorsStr = cosponsors ? `\nCo-sponsors: ${cosponsors}${meta.cosponsor_names?.length > 3 ? ' (+ more)' : ''}` : '';
+
+      // Build committees string if available
+      const committees = meta.committee_names ? meta.committee_names.join(', ') : '';
+      const committeesStr = committees ? `\nCommittees: ${committees}` : '';
+
       return `Bill: ${meta.bill_number || 'Unknown'}
 Session: ${meta.session_year} ${meta.session_code || ''}
 Document Type: ${meta.content_type || 'Unknown'}
-Sponsor: ${meta.primary_sponsor_name || 'Unknown'}
+Sponsor: ${meta.primary_sponsor_name || 'Unknown'}${cosponsorsStr}${committeesStr}
 Similarity: ${(row.similarity || 0).toFixed(2)}
 Content: ${content.substring(0, 300)}...
 ---`;
@@ -58,10 +75,14 @@ Content: ${content.substring(0, 300)}...
   {
     name: 'search_bills_semantic',
     description:
-      'Search for bills using semantic similarity. Use this when the user asks about bill content, topics, or concepts. Examples: "healthcare bills", "education funding", "tax reform"',
+      'Search for bills using semantic similarity with optional filters. Use this when the user asks about bill content, topics, or concepts, optionally filtered by session, sponsor, or committee. Examples: "healthcare bills from 2025", "education funding sponsored by Smith", "tax reform in Ways and Means committee"',
     schema: z.object({
-      query: z.string().describe('Natural language search query'),
+      query: z.string().describe('Natural language search query describing the bill content or topic'),
       limit: z.number().optional().default(5).describe('Maximum number of results'),
+      sessionYear: z.number().optional().describe('Filter by session year (e.g., 2025, 2024)'),
+      sessionCode: z.string().optional().describe('Filter by session code (R for Regular, S1 for Special 1, S2 for Special 2)'),
+      sponsorName: z.string().optional().describe('Filter by primary sponsor name (partial match supported)'),
+      committeeName: z.string().optional().describe('Filter by committee name'),
     }),
   }
 );
