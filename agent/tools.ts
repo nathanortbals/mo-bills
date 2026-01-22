@@ -7,6 +7,10 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { OpenAIEmbeddings } from '@langchain/openai';
+import {
+  SupabaseVectorStore,
+  SupabaseFilterRPCCall,
+} from '@langchain/community/vectorstores/supabase';
 import { getSupabaseClient } from '@/ingestion/database/client';
 import { Database } from '@/database/types';
 
@@ -86,55 +90,89 @@ export const searchBillsSemantic = tool(
   async ({ query, limit = 5, sessionYear, sessionCode, sponsorName, committeeName }) => {
     const supabase = getSupabaseClient();
 
-    // Generate embedding for query
+    // Initialize embeddings and vector store
     const embeddings = new OpenAIEmbeddings({
       model: 'text-embedding-3-small',
     });
-    const queryEmbedding = await embeddings.embedQuery(query);
 
-    // Call RPC function with optional filters
-    const { data, error } = await supabase.rpc('match_bill_embeddings_filtered', {
-      query_embedding: queryEmbedding,
-      match_count: limit,
-      match_threshold: 0.3,
-      filter_session_year: sessionYear || null,
-      filter_session_code: sessionCode || null,
-      filter_sponsor_name: sponsorName || null,
-      filter_committee_name: committeeName || null,
+    const vectorStore = new SupabaseVectorStore(embeddings, {
+      client: supabase,
+      tableName: 'bill_embeddings',
+      queryName: 'match_bill_embeddings',
     });
 
-    if (error) {
-      console.error('Semantic search error:', error);
-      return 'Error searching bills. Please try again.';
-    }
+    // Build metadata filter function
+    const filter: SupabaseFilterRPCCall = (rpc) => {
+      let query = rpc;
 
-    if (!data || data.length === 0) {
-      return 'No bills found matching that query with the given filters.';
-    }
+      // Filter by session year
+      if (sessionYear) {
+        query = query.filter('metadata->session_year', 'eq', sessionYear);
+      }
 
-    // Format results
-    const results = (data as BillEmbeddingMatch[]).map((row) => {
-      const meta = row.metadata || {};
-      const content = row.content || '';
+      // Filter by session code
+      if (sessionCode) {
+        query = query.filter('metadata->>session_code', 'eq', sessionCode);
+      }
 
-      // Build co-sponsors string if available
-      const cosponsors = meta.cosponsor_names ? meta.cosponsor_names.slice(0, 3).join(', ') : '';
-      const cosponsorsStr = cosponsors ? `\nCo-sponsors: ${cosponsors}${meta.cosponsor_names?.length > 3 ? ' (+ more)' : ''}` : '';
+      // Filter by sponsor name (partial match with ILIKE)
+      if (sponsorName) {
+        query = query.ilike('metadata->>primary_sponsor_name', `%${sponsorName}%`);
+      }
 
-      // Build committees string if available
-      const committees = meta.committee_names ? meta.committee_names.join(', ') : '';
-      const committeesStr = committees ? `\nCommittees: ${committees}` : '';
+      // Filter by committee name (check if array contains value)
+      // Note: This uses JSONB containment - checks if committee_names array includes the value
+      if (committeeName) {
+        query = query.contains('metadata->committee_names', JSON.stringify([committeeName]));
+      }
 
-      return `Bill: ${meta.bill_number || 'Unknown'}
+      return query;
+    };
+
+    try {
+      // Perform similarity search with score
+      const results = await vectorStore.similaritySearchWithScore(
+        query,
+        limit,
+        filter
+      );
+
+      if (results.length === 0) {
+        return 'No bills found matching that query with the given filters.';
+      }
+
+      // Format results
+      const formattedResults = results.map(([doc, score]) => {
+        const meta = (doc.metadata || {}) as BillEmbeddingMatch['metadata'];
+        const content = doc.pageContent || '';
+
+        // Build co-sponsors string if available
+        const cosponsors = meta.cosponsor_names ? meta.cosponsor_names.slice(0, 3).join(', ') : '';
+        const cosponsorsStr = cosponsors
+          ? `\nCo-sponsors: ${cosponsors}${meta.cosponsor_names?.length > 3 ? ' (+ more)' : ''}`
+          : '';
+
+        // Build committees string if available
+        const committees = meta.committee_names ? meta.committee_names.join(', ') : '';
+        const committeesStr = committees ? `\nCommittees: ${committees}` : '';
+
+        // Convert score to similarity (LangChain returns distance, we want similarity)
+        const similarity = 1 - score;
+
+        return `Bill: ${meta.bill_number || 'Unknown'}
 Session: ${meta.session_year} ${meta.session_code || ''}
 Document Type: ${meta.content_type || 'Unknown'}
 Sponsor: ${meta.primary_sponsor_name || 'Unknown'}${cosponsorsStr}${committeesStr}
-Similarity: ${(row.similarity || 0).toFixed(2)}
+Similarity: ${similarity.toFixed(2)}
 Content: ${content.substring(0, 300)}...
 ---`;
-    });
+      });
 
-    return results.join('\n\n');
+      return formattedResults.join('\n\n');
+    } catch (error) {
+      console.error('Semantic search error:', error);
+      return 'Error searching bills. Please try again.';
+    }
   },
   {
     name: 'search_bills_semantic',
