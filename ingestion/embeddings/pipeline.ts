@@ -7,7 +7,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { Buffer } from "buffer";
-import pdfParse = require("pdf-parse");
+import pdfParse from "pdf-parse";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 import { Document } from "@langchain/core/documents";
