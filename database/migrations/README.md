@@ -46,3 +46,16 @@ Removes the deprecated `match_bill_embeddings_filtered` function.
 - Standard query builder approach for metadata filtering
 
 **To apply**: Copy and run the SQL in your Supabase dashboard SQL Editor.
+
+### fix_match_bill_embeddings_for_langchain.sql
+Updates the `match_bill_embeddings` function signature to match LangChain SupabaseVectorStore expectations.
+
+**Changes**:
+- Old signature: `(query_embedding, match_threshold, match_count)`
+- New signature: `(query_embedding, match_count, filter)`
+- Adds optional JSONB filter parameter
+- Removes match_threshold (LangChain handles this differently)
+
+**Status**: Applied - fixes semantic search compatibility with LangChain v1.x.
+
+**To apply**: Copy and run the SQL in your Supabase dashboard SQL Editor.
