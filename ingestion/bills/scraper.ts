@@ -323,7 +323,7 @@ export class MoHouseBillScraper {
       }
 
       const rows = Array.from(billTable.querySelectorAll('tr'));
-      let currentBill: any = null;
+      let currentBill: BillListItem | null = null;
 
       for (const row of rows) {
         const cells = Array.from(row.querySelectorAll('td'));
