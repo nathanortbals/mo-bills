@@ -188,10 +188,10 @@ Content: ${content.substring(0, 300)}...
   {
     name: 'search_bills_semantic',
     description:
-      'Search for bills using semantic similarity with optional filters. Use this when the user asks about bill content, topics, or concepts, optionally filtered by session, sponsor, or committee. Examples: "healthcare bills from 2025", "education funding sponsored by Smith", "tax reform in Ways and Means committee"',
+      'Search for bills using semantic similarity with optional filters. Use this when the user asks about bill content, topics, or concepts, optionally filtered by session, sponsor, or committee. Examples: "healthcare bills from 2025", "education funding sponsored by Smith", "tax reform in Ways and Means committee". IMPORTANT: The response includes a header showing total results found vs. shown (e.g., "Found 36 matching results. Showing top 5:"). Always communicate this total count to the user so they know if more results are available.',
     schema: z.object({
       query: z.string().describe('Natural language search query describing the bill content or topic'),
-      limit: z.number().optional().default(5).describe('Maximum number of results'),
+      limit: z.number().optional().default(5).describe('Maximum number of results to show'),
       sessionYear: z.number().optional().describe('Filter by session year (e.g., 2025, 2024)'),
       sessionCode: z.string().optional().describe('Filter by session code (R for Regular, S1 for Special 1, S2 for Special 2)'),
       sponsorName: z.string().optional().describe('Filter by primary sponsor name (partial match supported)'),
