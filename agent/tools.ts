@@ -147,10 +147,23 @@ export const searchBillsSemantic = tool(
       const totalCount = allResults.length;
       const hasMore = totalCount > limit;
 
+      // Fetch bill summaries for all results to show
+      const billIds = resultsToShow
+        .map(([doc]) => (doc.metadata as BillEmbeddingMatch['metadata']).bill_id)
+        .filter((id): id is string => !!id);
+
+      const { data: bills } = await supabase
+        .from('bills')
+        .select('id, title, description')
+        .in('id', billIds);
+
+      const billsMap = new Map(bills?.map(b => [b.id, b]) || []);
+
       // Format results
       const formattedResults = resultsToShow.map(([doc, score]) => {
         const meta = (doc.metadata || {}) as BillEmbeddingMatch['metadata'];
         const content = doc.pageContent || '';
+        const billData = billsMap.get(meta.bill_id || '');
 
         // Build co-sponsors string if available
         const cosponsors = meta.cosponsor_names ? meta.cosponsor_names.slice(0, 3).join(', ') : '';
@@ -165,12 +178,19 @@ export const searchBillsSemantic = tool(
         // Convert score to similarity (LangChain returns distance, we want similarity)
         const similarity = 1 - score;
 
+        // Format with summary and matched content sections
+        const summarySection = billData?.description
+          ? `Summary: ${billData.description}\n`
+          : billData?.title
+          ? `Summary: ${billData.title}\n`
+          : '';
+
         return `Bill: ${meta.bill_number || 'Unknown'}
 Session: ${meta.session_year} ${meta.session_code || ''}
 Document Type: ${meta.content_type || 'Unknown'}
 Sponsor: ${meta.primary_sponsor_name || 'Unknown'}${cosponsorsStr}${committeesStr}
 Similarity: ${similarity.toFixed(2)}
-Content: ${content.substring(0, 300)}...
+${summarySection}Matched Content: ${content.substring(0, 300)}...
 ---`;
       });
 
