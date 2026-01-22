@@ -5,7 +5,6 @@
  */
 
 import * as fs from "fs";
-import * as path from "path";
 import { Buffer } from "buffer";
 import pdfParse from "pdf-parse";
 import { OpenAIEmbeddings } from "@langchain/openai";
