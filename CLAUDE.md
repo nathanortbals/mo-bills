@@ -143,7 +143,10 @@ Text preprocessing and chunking logic:
 Agent tools using LangChain's `tool()` function. Important patterns:
 - Bill numbers must be normalized: "HB1366" → "HB 1366" (database uses spaces)
 - Uses `normalizeBillNumber()` helper function for consistent formatting
-- Semantic search calls Supabase RPC function `match_bill_embeddings` directly
+- Semantic search uses `SupabaseVectorStore` with filter functions for metadata filtering
+  - Supports filtering by session year, session code, sponsor name, committee name
+  - Uses query builder approach (e.g., `rpc.filter('metadata->session_year', 'eq', 2025)`)
+  - Integrates cleanly with LangChain's RAG patterns
 - Each tool has zod schema for type safety
 - Returns formatted strings optimized for LLM consumption
 

@@ -30,15 +30,19 @@ Adds a text field for hearing times that can't be parsed as TIME.
 
 **Status**: Should already be applied if you've scraped bills.
 
-### add_filtered_embeddings_search.sql
-Creates an enhanced vector similarity search function with metadata filtering support.
+### ~~add_filtered_embeddings_search.sql~~ (DEPRECATED)
+**Replaced by SupabaseVectorStore filter functions.**
 
-**Features added:**
-- `match_bill_embeddings_filtered` function - Extends the base semantic search with optional filters
-- Filter by session year and session code
-- Filter by primary sponsor name (partial match)
-- Filter by committee name (exact match on array)
+This migration created `match_bill_embeddings_filtered` for metadata filtering, but we now use LangChain's SupabaseVectorStore with filter functions instead, which provides the same functionality with better integration.
 
-**Use case**: Enables queries like "healthcare bills from 2025 sponsored by Smith" or "education bills in Ways and Means committee"
+**Status**: If applied, run `drop_filtered_embeddings_search.sql` to clean up.
+
+### drop_filtered_embeddings_search.sql
+Removes the deprecated `match_bill_embeddings_filtered` function.
+
+**Why**: We now use SupabaseVectorStore's filter parameter instead of a custom RPC function. This provides:
+- Better LangChain integration
+- Easier maintenance
+- Standard query builder approach for metadata filtering
 
 **To apply**: Copy and run the SQL in your Supabase dashboard SQL Editor.
