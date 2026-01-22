@@ -312,7 +312,7 @@ export class MoHouseBillScraper {
 
     // Extract bill data using JavaScript
     const bills = await this.page.evaluate(() => {
-      const bills: any[] = [];
+      const bills: BillListItem[] = [];
       const tables = Array.from(document.querySelectorAll('table'));
       const billTable = tables.find(
         (t) => t.innerText.includes('HB') || t.innerText.includes('SB')
@@ -388,7 +388,7 @@ export class MoHouseBillScraper {
 
     // Extract detailed information
     const details = await this.page.evaluate(() => {
-      const details: any = {
+      const details: BillDetails = {
         bill_number: '',
         title: '',
         sponsor: '',
@@ -452,7 +452,7 @@ export class MoHouseBillScraper {
         if (text in labels) {
           const nextEl = allElements[i + 1];
           if (nextEl) {
-            const fieldName = labels[text as keyof typeof labels];
+            const fieldName = labels[text as keyof typeof labels] as keyof BillDetails;
             details[fieldName] = nextEl.textContent?.trim() || '';
           }
         }
@@ -707,8 +707,11 @@ export class MoHouseBillScraper {
       throw new Error('Database or session not initialized');
     }
 
-    // Prepare bill record
-    const billRecord: Database['public']['Tables']['bills']['Insert'] = {
+    // Prepare bill record (session_id added later via upsertBill)
+    const billRecord: Omit<
+      Database['public']['Tables']['bills']['Insert'],
+      'session_id'
+    > = {
       bill_number: billData.bill_number,
       title: billData.title,
       description: billData.description,

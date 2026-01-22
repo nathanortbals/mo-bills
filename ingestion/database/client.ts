@@ -473,7 +473,7 @@ export class DatabaseClient {
    */
   async upsertBill(
     sessionId: string,
-    billRecord: BillInsert,
+    billRecord: Omit<BillInsert, 'session_id'>,
     sponsorsData?: SponsorData[],
     actionsData?: ActionData[],
     hearingsData?: HearingData[],
