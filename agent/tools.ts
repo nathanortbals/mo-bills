@@ -16,11 +16,8 @@ import { Database } from '@/database/types';
 
 // Type aliases for database tables
 type Bill = Database['public']['Tables']['bills']['Row'];
-type Session = Database['public']['Tables']['sessions']['Row'];
 type Legislator = Database['public']['Tables']['legislators']['Row'];
 type BillAction = Database['public']['Tables']['bill_actions']['Row'];
-type BillHearing = Database['public']['Tables']['bill_hearings']['Row'];
-type Committee = Database['public']['Tables']['committees']['Row'];
 
 // Type for RPC function return
 interface BillEmbeddingMatch {
@@ -149,7 +146,7 @@ export const searchBillsSemantic = tool(
         // Build co-sponsors string if available
         const cosponsors = meta.cosponsor_names ? meta.cosponsor_names.slice(0, 3).join(', ') : '';
         const cosponsorsStr = cosponsors
-          ? `\nCo-sponsors: ${cosponsors}${meta.cosponsor_names?.length > 3 ? ' (+ more)' : ''}`
+          ? `\nCo-sponsors: ${cosponsors}${(meta.cosponsor_names?.length ?? 0) > 3 ? ' (+ more)' : ''}`
           : '';
 
         // Build committees string if available

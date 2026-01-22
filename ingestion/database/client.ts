@@ -9,12 +9,9 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/database/types';
 
 // Type aliases for convenience
-type Session = Database['public']['Tables']['sessions']['Row'];
 type Bill = Database['public']['Tables']['bills']['Row'];
 type BillInsert = Database['public']['Tables']['bills']['Insert'];
 type BillDocument = Database['public']['Tables']['bill_documents']['Row'];
-type Legislator = Database['public']['Tables']['legislators']['Row'];
-type Committee = Database['public']['Tables']['committees']['Row'];
 
 /**
  * Legislator data for upsert operations (without auto-generated fields)
