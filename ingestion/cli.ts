@@ -24,6 +24,7 @@ import { Command } from 'commander';
 import { runLegislatorScraper } from './legislators/scraper';
 import { scrapeBillsForSession } from './bills/scraper';
 import { processSession } from './embeddings/pipeline';
+import { extractTextForSession } from './text-extraction/extractor';
 import { DatabaseClient } from './database/client';
 
 // All Missouri House sessions from 2026 to 2000
@@ -357,6 +358,104 @@ program
       const avg = stats.totalEmbeddingsCreated / stats.totalBillsProcessed;
       console.log(`Average embeddings per bill: ${avg.toFixed(1)}`);
     }
+    console.log('='.repeat(80));
+  });
+
+// Extract text from bill documents command
+program
+  .command('extract-text')
+  .description('Extract full text from bill document PDFs for a session')
+  .option('--year <year>', 'Session year', '2026')
+  .option('--session-code <code>', 'Session code (R, S1, S2)', 'R')
+  .option('--force', 'Re-extract text for documents that already have it', false)
+  .action(async (options) => {
+    const year = parseInt(options.year);
+    const sessionCode = options.sessionCode;
+    const skipExtracted = !options.force;
+
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`EXTRACTING TEXT: ${year} ${sessionCode}`);
+    console.log('='.repeat(80));
+    console.log(`Skip already extracted: ${skipExtracted}\n`);
+
+    const db = new DatabaseClient();
+
+    try {
+      const sessionId = await db.getOrCreateSession(year, sessionCode);
+      console.log(`Session ID: ${sessionId}`);
+
+      const result = await extractTextForSession(sessionId, skipExtracted);
+
+      console.log('\n✅ Text extraction complete');
+      console.log(`   Documents processed: ${result.documentsProcessed}`);
+      console.log(`   Succeeded: ${result.documentsSucceeded}`);
+      console.log(`   Failed: ${result.documentsFailed}`);
+    } catch (error) {
+      console.error('\n❌ Failed to extract text:', error);
+      process.exit(1);
+    }
+  });
+
+// Extract text for all sessions command
+program
+  .command('extract-all-text')
+  .description('Extract text from all bill documents (2026-2000)')
+  .option('--start-year <year>', 'Start from a specific year and work backwards', '2026')
+  .option('--force', 'Re-extract text for documents that already have it', false)
+  .action(async (options) => {
+    const startYear = parseInt(options.startYear);
+    const skipExtracted = !options.force;
+
+    // Filter sessions to start from specified year
+    const sessionsToProcess = SESSIONS.filter(s => s.year <= startYear);
+
+    console.log('='.repeat(80));
+    console.log(`TEXT EXTRACTION - SESSIONS (${startYear}-2000)`);
+    console.log('='.repeat(80));
+    console.log(`\nTotal sessions to process: ${sessionsToProcess.length}`);
+    console.log(`Skip already extracted: ${skipExtracted}\n`);
+
+    const db = new DatabaseClient();
+
+    const stats = {
+      sessionsProcessed: 0,
+      sessionsFailed: 0,
+      totalDocumentsProcessed: 0,
+      totalDocumentsSucceeded: 0,
+      totalDocumentsFailed: 0,
+    };
+
+    for (const { year, sessionCode, description } of sessionsToProcess) {
+      try {
+        console.log(`\n${'='.repeat(80)}`);
+        console.log(`EXTRACTING TEXT: ${description}`);
+        console.log('='.repeat(80));
+
+        const sessionId = await db.getOrCreateSession(year, sessionCode);
+        const result = await extractTextForSession(sessionId, skipExtracted);
+
+        stats.sessionsProcessed++;
+        stats.totalDocumentsProcessed += result.documentsProcessed;
+        stats.totalDocumentsSucceeded += result.documentsSucceeded;
+        stats.totalDocumentsFailed += result.documentsFailed;
+
+        console.log(`\n✓ Session complete: ${result.documentsSucceeded}/${result.documentsProcessed} succeeded`);
+      } catch (error) {
+        console.error(`\n❌ FATAL ERROR processing ${description}:`, error);
+        stats.sessionsFailed++;
+        continue;
+      }
+    }
+
+    // Print final summary
+    console.log('\n' + '='.repeat(80));
+    console.log('FINAL SUMMARY');
+    console.log('='.repeat(80));
+    console.log(`Sessions processed: ${stats.sessionsProcessed}/${sessionsToProcess.length}`);
+    console.log(`Sessions failed: ${stats.sessionsFailed}`);
+    console.log(`\nDocuments processed: ${stats.totalDocumentsProcessed}`);
+    console.log(`Documents succeeded: ${stats.totalDocumentsSucceeded}`);
+    console.log(`Documents failed: ${stats.totalDocumentsFailed}`);
     console.log('='.repeat(80));
   });
 

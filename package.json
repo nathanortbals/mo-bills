@@ -13,6 +13,8 @@
     "ingest:bills": "tsx ingestion/cli.ts scrape-bills",
     "ingest:embeddings": "tsx ingestion/cli.ts generate-embeddings",
     "ingest:embeddings:all": "tsx ingestion/cli.ts generate-all-embeddings",
+    "ingest:text": "tsx ingestion/cli.ts extract-text",
+    "ingest:text:all": "tsx ingestion/cli.ts extract-all-text",
     "ingest:all": "tsx ingestion/cli.ts scrape-all"
   },
   "overrides": {

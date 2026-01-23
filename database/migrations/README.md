@@ -62,3 +62,12 @@ Updates the `match_bill_embeddings` function signature to match LangChain Supaba
 **Status**: Applied - fixes semantic search compatibility with LangChain v1.x.
 
 **To apply**: Copy and run the SQL in your Supabase dashboard SQL Editor.
+
+### add_extracted_text_to_bill_documents.sql
+Adds `extracted_text` and `text_extracted_at` columns to the bill_documents table for storing full PDF text with line numbers preserved.
+
+**Purpose**: Store extracted text from PDFs for full-text display in the UI with accurate line number references.
+
+**Status**: Applied.
+
+**To apply**: Copy and run the SQL in your Supabase dashboard SQL Editor.
