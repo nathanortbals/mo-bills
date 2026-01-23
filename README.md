@@ -23,6 +23,7 @@ This project aims to make Missouri legislative information accessible and querya
 - ✅ Document filtering (Introduced + most recent version, excludes fiscal notes)
 - ✅ Rich metadata (session, sponsors, co-sponsors, committees)
 - ✅ Vector storage with pgvector and similarity search function
+- ✅ Full-text extraction with line number preservation for UI display
 
 🟢 **Phase 3: AI Agent with Next.js** (Complete)
 
@@ -88,6 +89,7 @@ This project aims to make Missouri legislative information accessible and querya
   - [x] Create vector indexes for similarity search
   - [x] Implement smart chunking strategies
   - [x] Add comprehensive metadata to embeddings
+  - [x] Extract and store full text with line numbers for UI display
 
 - [x] **Phase 3: AI Agent with Next.js**
   - [x] Build LangGraph.js agent in TypeScript
@@ -252,6 +254,18 @@ Options:
 - `--session-code`: Session code - R (Regular), S1 (First Special), S2 (Second Special)
 - `--limit`: Optional limit on number of bills to process
 
+**Step 4: Extract Full Text (Optional)**
+```bash
+npm run ingest:text -- --year 2026 --session-code R
+```
+
+This extracts full text from bill PDFs and stores it in the database with line numbers preserved for UI reference.
+
+Options:
+- `--year`: Legislative year (required)
+- `--session-code`: Session code - R (Regular), S1 (First Special), S2 (Second Special)
+- `--force`: Re-extract text for documents that already have it (default: skip already extracted)
+
 ##### All Sessions (2026-2000)
 
 To scrape all sessions at once:
@@ -263,7 +277,7 @@ This will process sessions from 2026 back to 2000. The script is idempotent and 
 
 To generate embeddings for all sessions:
 ```bash
-npm run ingest -- generate-all-embeddings
+npm run ingest:embeddings:all
 ```
 
 The embeddings pipeline will:
@@ -272,6 +286,22 @@ The embeddings pipeline will:
 - Chunk using section-based or sentence-based strategies
 - Generate embeddings via OpenAI text-embedding-3-small
 - Store with comprehensive metadata (sponsors, committees, session info)
+
+To extract full text for all sessions:
+```bash
+npm run ingest:text:all
+```
+
+Options:
+- `--start-year <year>`: Start from a specific year and work backwards (default: 2026)
+- `--force`: Re-extract text for documents that already have it
+
+The text extraction pipeline will:
+- Extract full text from all bill PDFs
+- Preserve line numbers for UI reference
+- Store text in `bill_documents.extracted_text` column
+- Track extraction timestamp for incremental updates
+- Skip already-extracted documents by default (use `--force` to re-extract)
 
 
 ## Documentation
@@ -296,9 +326,11 @@ mo-bills/
 │   ├── legislators/             # Legislator scraper
 │   ├── embeddings/              # Embeddings pipeline
 │   │   ├── chunking.ts         # Text chunking strategies
-│   │   └── embeddingsPipeline.ts # Main embeddings pipeline
-│   ├── scrapeAllSessions.ts    # Batch scraper for all sessions
-│   └── generateAllEmbeddings.ts # Batch embeddings generator
+│   │   └── pipeline.ts         # Main embeddings pipeline
+│   ├── text-extraction/         # Full-text extraction from PDFs
+│   │   └── extractor.ts        # Text extraction with line preservation
+│   ├── database/                # Database client and utilities
+│   └── cli.ts                   # Command-line interface
 ├── database/                     # Database types and migrations
 │   ├── types.ts                 # Shared TypeScript types
 │   └── migrations/              # SQL migration files
