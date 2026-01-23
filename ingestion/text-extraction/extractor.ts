@@ -14,6 +14,16 @@ export interface TextExtractionResult {
   documentsFailed: number;
 }
 
+interface DocumentWithBill {
+  id: string;
+  storage_path: string | null;
+  document_type: string;
+  bills: {
+    bill_number: string;
+    session_id: string;
+  } | null;
+}
+
 export class TextExtractor {
   private db: DatabaseClient;
 
@@ -62,14 +72,13 @@ export class TextExtractor {
       console.log(`    ✓ ${extractedText.split('\n').length} lines`);
 
       // Update database with extracted text
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (this.db['_client']
+      const { error } = await this.db['_client']
         .from('bill_documents')
         .update({
           extracted_text: extractedText,
           text_extracted_at: new Date().toISOString(),
-        } as any)
-        .eq('id', documentId));
+        })
+        .eq('id', documentId);
 
       if (error) {
         throw error;
@@ -112,11 +121,14 @@ export class TextExtractor {
       query = query.is('text_extracted_at', null);
     }
 
-    const { data: documents, error } = await query;
+    const { data, error } = await query;
 
     if (error) {
       throw new Error(`Failed to fetch documents: ${error.message}`);
     }
+
+    // Type assertion for nested query result
+    const documents = data as unknown as DocumentWithBill[];
 
     if (!documents || documents.length === 0) {
       console.log('No documents found for extraction');
@@ -132,8 +144,7 @@ export class TextExtractor {
     };
 
     for (const doc of documents) {
-      const bills = doc.bills as { bill_number: string; session_id: string } | null;
-      const billNumber = bills?.bill_number || 'Unknown';
+      const billNumber = doc.bills?.bill_number || 'Unknown';
       console.log(`\nDocument ${result.documentsProcessed + 1}/${documents.length}`);
       console.log(`Bill: ${billNumber} - ${doc.document_type}`);
 

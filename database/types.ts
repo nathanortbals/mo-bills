@@ -55,24 +55,30 @@ export type Database = {
           created_at: string | null
           document_type: string
           document_url: string | null
+          extracted_text: string | null
           id: string
           storage_path: string | null
+          text_extracted_at: string | null
         }
         Insert: {
           bill_id: string
           created_at?: string | null
           document_type: string
           document_url?: string | null
+          extracted_text?: string | null
           id?: string
           storage_path?: string | null
+          text_extracted_at?: string | null
         }
         Update: {
           bill_id?: string
           created_at?: string | null
           document_type?: string
           document_url?: string | null
+          extracted_text?: string | null
           id?: string
           storage_path?: string | null
+          text_extracted_at?: string | null
         }
         Relationships: [
           {
@@ -401,11 +407,7 @@ export type Database = {
     }
     Functions: {
       match_bill_embeddings: {
-        Args: {
-          match_count?: number
-          match_threshold?: number
-          query_embedding: string
-        }
+        Args: { filter?: Json; match_count?: number; query_embedding: string }
         Returns: {
           content: string
           embedding: string
