@@ -6,10 +6,8 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   try {
     const { message, threadId } = await req.json();
-    console.log('[stream] Request received:', { message: message?.substring(0, 50), threadId });
 
     if (!message || !threadId) {
-      console.log('[stream] Missing required fields');
       return new Response('Message and threadId are required', { status: 400 });
     }
 
@@ -19,18 +17,13 @@ export async function POST(req: Request) {
       },
     };
 
-    // Get agent graph with PostgresSaver checkpointer
-    console.log('[stream] Getting agent graph...');
     const graph = await getAgentGraph();
-    console.log('[stream] Agent graph ready');
 
     // Stream with "messages" mode for token-level streaming
-    console.log('[stream] Starting stream...');
     const stream = await graph.stream(
       { messages: [{ role: "user", content: message }] },
       { ...config, streamMode: 'messages' }
     );
-    console.log('[stream] Stream created');
 
     // Create a text stream from LangChain
     const encoder = new TextEncoder();

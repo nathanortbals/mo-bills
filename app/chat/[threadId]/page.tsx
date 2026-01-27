@@ -18,8 +18,10 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialMessageSentRef = useRef(false);
+  const historyLoadedRef = useRef(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -28,6 +30,36 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Load chat history on mount
+  useEffect(() => {
+    // Skip if we have an initial message (new chat) or already loaded
+    const initialMessage = searchParams.get('message');
+    if (initialMessage || historyLoadedRef.current) {
+      setIsLoadingHistory(false);
+      return;
+    }
+
+    historyLoadedRef.current = true;
+
+    async function loadHistory() {
+      try {
+        const response = await fetch(`/api/chat/${threadId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.messages && data.messages.length > 0) {
+            setMessages(data.messages);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    }
+
+    loadHistory();
+  }, [threadId, searchParams]);
 
   // Send a message (used for both form submit and auto-send)
   const sendMessage = useCallback(async (messageText: string) => {
@@ -189,7 +221,35 @@ export default function ChatPage() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="mx-auto max-w-4xl space-y-6">
-          {messages.length === 0 && (
+          {isLoadingHistory && (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+                <svg
+                  className="h-5 w-5 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <span>Loading conversation...</span>
+              </div>
+            </div>
+          )}
+
+          {!isLoadingHistory && messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
                 <svg
@@ -274,12 +334,12 @@ export default function ChatPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about Missouri House bills..."
-              disabled={isLoading}
+              disabled={isLoading || isLoadingHistory}
               className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || isLoadingHistory || !input.trim()}
               className="rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 px-6 py-3 text-sm font-medium text-white transition-all hover:shadow-lg disabled:opacity-50 disabled:hover:shadow-none"
             >
               {isLoading ? (
