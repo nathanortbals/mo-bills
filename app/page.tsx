@@ -77,7 +77,7 @@ export default function Home() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about Missouri House bills..."
               disabled={isLoading}
-              className="w-full rounded-full border border-neutral-700 bg-neutral-900 px-6 py-4 pr-24 text-base text-white placeholder-neutral-500 transition-colors focus:border-neutral-500 focus:outline-none disabled:opacity-50"
+              className="w-full rounded-full border border-neutral-700 bg-neutral-900 px-6 py-4 pr-24 text-base text-white placeholder-neutral-500 transition-colors focus:border-blue-500/50 focus:outline-none disabled:opacity-50"
             />
             <button
               type="submit"
@@ -139,19 +139,19 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-2">
             <button
               onClick={() => handleSuggestedQuestion('What bills are about healthcare?')}
-              className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-neutral-800"
+              className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
             >
               Healthcare
             </button>
             <button
               onClick={() => handleSuggestedQuestion('Show me recent education bills')}
-              className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-neutral-800"
+              className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
             >
               Education
             </button>
             <button
               onClick={() => handleSuggestedQuestion('What are the latest tax bills?')}
-              className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-neutral-800"
+              className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
             >
               Taxes
             </button>
