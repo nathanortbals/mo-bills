@@ -164,13 +164,13 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="flex h-screen flex-col bg-linear-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/80">
         <div className="mx-auto max-w-4xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-indigo-600 text-white">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -252,7 +252,7 @@ export default function ChatPage() {
 
           {!isLoadingHistory && messages.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -300,7 +300,7 @@ export default function ChatPage() {
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                   message.role === 'user'
-                    ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
+                    ? 'bg-linear-to-br from-blue-500 to-indigo-600 text-white'
                     : 'bg-white shadow-sm dark:bg-gray-800 dark:text-gray-100'
                 }`}
               >
@@ -347,7 +347,7 @@ export default function ChatPage() {
             <button
               type="submit"
               disabled={isLoading || isLoadingHistory || !input.trim()}
-              className="rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 px-6 py-3 text-sm font-medium text-white transition-all hover:shadow-lg disabled:opacity-50 disabled:hover:shadow-none"
+              className="rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 px-6 py-3 text-sm font-medium text-white transition-all hover:shadow-lg disabled:opacity-50 disabled:hover:shadow-none"
             >
               {isLoading ? (
                 <svg
