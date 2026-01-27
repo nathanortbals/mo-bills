@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, FormEvent, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { Streamdown } from 'streamdown';
 
 interface Message {
   id: string;
@@ -303,9 +304,15 @@ export default function ChatPage() {
                     : 'bg-white shadow-sm dark:bg-gray-800 dark:text-gray-100'
                 }`}
               >
-                <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-                  {message.content}
-                </div>
+                {message.role === 'user' ? (
+                  <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                    {message.content}
+                  </div>
+                ) : (
+                  <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                    <Streamdown>{message.content}</Streamdown>
+                  </div>
+                )}
               </div>
             </div>
           ))}

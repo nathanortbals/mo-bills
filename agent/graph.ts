@@ -34,7 +34,16 @@ When users ask about bills:
 5. Find hearings for committee schedule questions
 
 Always provide clear, accurate information based on the data retrieved from your tools.
-Be concise but comprehensive in your responses.`;
+Be concise but comprehensive in your responses.
+
+## Formatting Guidelines
+
+Always format your responses using Markdown:
+- Use **bold** for bill numbers (e.g., **HB 1234**)
+- Use bullet points or numbered lists for multiple items
+- Use headers (##, ###) to organize longer responses
+- Use tables when comparing multiple bills or showing structured data
+- Use \`code formatting\` for specific legal references or section numbers`;
 
 /**
  * Create the OpenAI model instance
