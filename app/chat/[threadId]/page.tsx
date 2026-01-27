@@ -264,18 +264,24 @@ export default function ChatPage() {
               <p className="max-w-sm text-neutral-500">
                 Ask about Missouri House bills, sponsors, or legislative topics.
               </p>
-              <div className="mt-8 flex flex-wrap justify-center gap-2">
+              <div className="mt-8 flex flex-col items-center gap-2">
                 <button
-                  onClick={() => handleSuggestedQuestion('What bills are about healthcare?')}
+                  onClick={() =>
+                    handleSuggestedQuestion(
+                      'What healthcare related bills have been introduced this session?'
+                    )
+                  }
                   className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
                 >
-                  Healthcare bills
+                  What healthcare related bills have been introduced this session?
                 </button>
                 <button
-                  onClick={() => handleSuggestedQuestion('Show me recent education bills')}
+                  onClick={() =>
+                    handleSuggestedQuestion('Which bills have upcoming committee hearings?')
+                  }
                   className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
                 >
-                  Education bills
+                  Which bills have upcoming committee hearings?
                 </button>
               </div>
             </div>

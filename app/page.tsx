@@ -135,25 +135,33 @@ export default function Home() {
 
         {/* Suggested Questions */}
         <div className="mt-10">
-          <p className="mb-4 text-sm text-neutral-500">Try asking about:</p>
-          <div className="flex flex-wrap justify-center gap-2">
+          <p className="mb-4 text-sm text-neutral-500">Try asking:</p>
+          <div className="flex flex-col items-center gap-2">
             <button
-              onClick={() => handleSuggestedQuestion('What bills are about healthcare?')}
+              onClick={() =>
+                handleSuggestedQuestion(
+                  'What healthcare related bills have been introduced this session?'
+                )
+              }
               className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
             >
-              Healthcare
+              What healthcare related bills have been introduced this session?
             </button>
             <button
-              onClick={() => handleSuggestedQuestion('Show me recent education bills')}
+              onClick={() =>
+                handleSuggestedQuestion('Which bills have upcoming committee hearings?')
+              }
               className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
             >
-              Education
+              Which bills have upcoming committee hearings?
             </button>
             <button
-              onClick={() => handleSuggestedQuestion('What are the latest tax bills?')}
+              onClick={() =>
+                handleSuggestedQuestion('What education bills have passed the House this year?')
+              }
               className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
             >
-              Taxes
+              What education bills have passed the House this year?
             </button>
           </div>
         </div>
