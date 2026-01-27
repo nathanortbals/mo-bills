@@ -41,17 +41,17 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 px-4">
-      <main className="flex w-full max-w-3xl flex-col items-center text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-neutral-950 px-4">
+      <main className="flex w-full max-w-2xl flex-col items-center text-center">
         {/* Logo */}
-        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 shadow-lg">
+        <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-full bg-[#ad0636]">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={2}
             stroke="currentColor"
-            className="h-10 w-10 text-white"
+            className="h-8 w-8 text-white"
           >
             <path
               strokeLinecap="round"
@@ -62,27 +62,27 @@ export default function Home() {
         </div>
 
         {/* Title */}
-        <h1 className="mb-2 text-4xl font-bold tracking-tight text-gray-900 dark:text-white md:text-5xl">
-          Missouri Bills Assistant
+        <h1 className="mb-3 text-4xl font-semibold tracking-tight text-white md:text-5xl">
+          Missouri Bills
         </h1>
-        <p className="mb-8 text-xl text-gray-600 dark:text-gray-300">
-          How can I <span className="text-blue-600 dark:text-blue-400">help</span>?
+        <p className="mb-10 text-lg text-neutral-400">
+          Search and explore Missouri House legislation
         </p>
 
         {/* Input Form */}
         <form onSubmit={handleSubmit} className="w-full">
-          <div className="relative rounded-2xl border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+          <div className="relative">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about Missouri House bills..."
               disabled={isLoading}
-              className="w-full rounded-2xl border-0 bg-transparent px-6 py-5 pr-16 text-base placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 dark:text-gray-100 dark:placeholder-gray-500"
+              className="w-full rounded-full border border-neutral-700 bg-neutral-900 px-6 py-4 pr-24 text-base text-white placeholder-neutral-500 transition-colors focus:border-neutral-500 focus:outline-none disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:shadow-lg disabled:opacity-50 disabled:hover:shadow-none"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-[#ad0636] px-5 py-2 text-sm font-medium text-white transition-all hover:bg-[#8a0529] disabled:opacity-50"
             >
               {isLoading ? (
                 <svg
@@ -129,88 +129,44 @@ export default function Home() {
         </form>
 
         {/* Disclaimer */}
-        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+        <p className="mt-4 text-xs text-neutral-500">
           AI can make mistakes. Please double-check responses.
         </p>
 
         {/* Suggested Questions */}
-        <div className="mt-8">
-          <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-            Shortcuts:
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
+        <div className="mt-10">
+          <p className="mb-4 text-sm text-neutral-500">Try asking about:</p>
+          <div className="flex flex-wrap justify-center gap-2">
             <button
               onClick={() => handleSuggestedQuestion('What bills are about healthcare?')}
-              className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-neutral-800"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="h-4 w-4 text-yellow-500"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18"
-                />
-              </svg>
-              Healthcare bills
+              Healthcare
             </button>
             <button
               onClick={() => handleSuggestedQuestion('Show me recent education bills')}
-              className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-neutral-800"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="h-4 w-4 text-red-500"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5"
-                />
-              </svg>
-              Education bills
+              Education
             </button>
             <button
               onClick={() => handleSuggestedQuestion('What are the latest tax bills?')}
-              className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-neutral-800"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="h-4 w-4 text-blue-500"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Tax bills
+              Taxes
             </button>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-16 text-sm text-gray-500 dark:text-gray-400">
+        <div className="mt-20 text-sm text-neutral-600">
           <p>
-            Data sourced from the{' '}
+            Data from the{' '}
             <a
               href="https://house.mo.gov"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-gray-700 dark:hover:text-gray-300"
+              className="text-neutral-500 underline hover:text-neutral-400"
             >
               Missouri House of Representatives
             </a>

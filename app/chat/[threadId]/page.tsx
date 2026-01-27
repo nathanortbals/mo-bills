@@ -63,75 +63,76 @@ export default function ChatPage() {
   }, [threadId, searchParams]);
 
   // Send a message (used for both form submit and auto-send)
-  const sendMessage = useCallback(async (messageText: string) => {
-    if (!messageText.trim()) return;
+  const sendMessage = useCallback(
+    async (messageText: string) => {
+      if (!messageText.trim()) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: messageText,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/api/chat/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: messageText, threadId }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      // Create assistant message that we'll update as we stream
-      const assistantMessageId = (Date.now() + 1).toString();
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: '',
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: messageText,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, userMessage]);
+      setIsLoading(true);
 
-      // Read the stream
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
+      try {
+        const response = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: messageText, threadId }),
+        });
 
-      if (!reader) {
-        throw new Error('No reader available');
+        if (!response.ok) {
+          throw new Error('Failed to get response');
+        }
+
+        // Create assistant message that we'll update as we stream
+        const assistantMessageId = (Date.now() + 1).toString();
+        const assistantMessage: Message = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: '',
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Read the stream
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        if (!reader) {
+          throw new Error('No reader available');
+        }
+
+        while (true) {
+          const { done, value } = await reader.read();
+
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+
+          // Update the assistant message with accumulated content
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId ? { ...msg, content: msg.content + chunk } : msg
+            )
+          );
+        }
+      } catch (error) {
+        console.error('Chat error:', error);
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: 'Sorry, there was an error processing your request.',
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
       }
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-
-        // Update the assistant message with accumulated content
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMessageId
-              ? { ...msg, content: msg.content + chunk }
-              : msg
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Chat error:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, there was an error processing your request.',
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [threadId]);
+    },
+    [threadId]
+  );
 
   // Handle initial message from URL
   useEffect(() => {
@@ -164,20 +165,20 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-linear-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="flex h-screen flex-col bg-neutral-950">
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/80">
-        <div className="mx-auto max-w-4xl px-4 py-4">
+      <div className="border-b border-neutral-800 bg-neutral-950">
+        <div className="mx-auto max-w-3xl px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-indigo-600 text-white">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ad0636] text-white">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={2}
                   stroke="currentColor"
-                  className="h-6 w-6"
+                  className="h-5 w-5"
                 >
                   <path
                     strokeLinecap="round"
@@ -187,17 +188,12 @@ export default function ChatPage() {
                 </svg>
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Missouri Bills Assistant
-                </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Ask questions about Missouri House legislation
-                </p>
+                <h1 className="text-base font-medium text-white">Missouri Bills</h1>
               </div>
             </div>
             <button
               onClick={handleNewChat}
-              className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              className="flex items-center gap-2 rounded-full border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 transition-colors hover:border-neutral-600 hover:bg-neutral-900"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -207,13 +203,9 @@ export default function ChatPage() {
                 stroke="currentColor"
                 className="h-4 w-4"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 4.5v15m7.5-7.5h-15"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-              New Chat
+              New
             </button>
           </div>
         </div>
@@ -221,10 +213,10 @@ export default function ChatPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="mx-auto max-w-4xl space-y-6">
+        <div className="mx-auto max-w-3xl space-y-6">
           {isLoadingHistory && (
             <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-neutral-500">
                 <svg
                   className="h-5 w-5 animate-spin"
                   xmlns="http://www.w3.org/2000/svg"
@@ -251,15 +243,15 @@ export default function ChatPage() {
           )}
 
           {!isLoadingHistory && messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-indigo-600 text-white">
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[#ad0636] text-white">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
                   stroke="currentColor"
-                  className="h-8 w-8"
+                  className="h-7 w-7"
                 >
                   <path
                     strokeLinecap="round"
@@ -268,25 +260,22 @@ export default function ChatPage() {
                   />
                 </svg>
               </div>
-              <h2 className="mb-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                Welcome to MO Bills
-              </h2>
-              <p className="max-w-md text-gray-600 dark:text-gray-400">
-                I can help you search and understand Missouri House bills. Try asking about
-                healthcare, education, or specific bill numbers.
+              <h2 className="mb-2 text-xl font-medium text-white">Start a conversation</h2>
+              <p className="max-w-sm text-neutral-500">
+                Ask about Missouri House bills, sponsors, or legislative topics.
               </p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="mt-8 flex flex-wrap justify-center gap-2">
                 <button
                   onClick={() => handleSuggestedQuestion('What bills are about healthcare?')}
-                  className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                  className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-neutral-800"
                 >
-                  What bills are about healthcare?
+                  Healthcare bills
                 </button>
                 <button
                   onClick={() => handleSuggestedQuestion('Show me recent education bills')}
-                  className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                  className="rounded-full border border-neutral-800 bg-neutral-900 px-4 py-2 text-sm text-neutral-300 transition-colors hover:border-neutral-700 hover:bg-neutral-800"
                 >
-                  Show me recent education bills
+                  Education bills
                 </button>
               </div>
             </div>
@@ -298,10 +287,10 @@ export default function ChatPage() {
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                   message.role === 'user'
-                    ? 'bg-linear-to-br from-blue-500 to-indigo-600 text-white'
-                    : 'bg-white shadow-sm dark:bg-gray-800 dark:text-gray-100'
+                    ? 'bg-[#ad0636] text-white'
+                    : 'bg-neutral-900 text-neutral-100'
                 }`}
               >
                 {message.role === 'user' ? (
@@ -309,7 +298,7 @@ export default function ChatPage() {
                     {message.content}
                   </div>
                 ) : (
-                  <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+                  <div className="prose prose-sm prose-invert max-w-none wrap-break-word prose-p:leading-relaxed prose-pre:bg-neutral-800">
                     <Streamdown>{message.content}</Streamdown>
                   </div>
                 )}
@@ -319,11 +308,11 @@ export default function ChatPage() {
 
           {isLoading && messages[messages.length - 1]?.role === 'user' && (
             <div className="flex justify-start">
-              <div className="max-w-[80%] rounded-2xl bg-white px-4 py-3 shadow-sm dark:bg-gray-800">
+              <div className="rounded-2xl bg-neutral-900 px-4 py-3">
                 <div className="flex items-center gap-1">
-                  <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]"></div>
-                  <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]"></div>
-                  <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400"></div>
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-neutral-600 [animation-delay:-0.3s]"></div>
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-neutral-600 [animation-delay:-0.15s]"></div>
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-neutral-600"></div>
                 </div>
               </div>
             </div>
@@ -334,20 +323,20 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/80">
-        <div className="mx-auto max-w-4xl px-4 py-4">
+      <div className="border-t border-neutral-800 bg-neutral-950">
+        <div className="mx-auto max-w-3xl px-4 py-4">
           <form onSubmit={handleSubmit} className="flex gap-3">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about Missouri House bills..."
               disabled={isLoading || isLoadingHistory}
-              className="flex-1 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
+              className="flex-1 rounded-full border border-neutral-700 bg-neutral-900 px-5 py-3 text-sm text-white placeholder-neutral-500 transition-colors focus:border-neutral-500 focus:outline-none disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={isLoading || isLoadingHistory || !input.trim()}
-              className="rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 px-6 py-3 text-sm font-medium text-white transition-all hover:shadow-lg disabled:opacity-50 disabled:hover:shadow-none"
+              className="rounded-full bg-[#ad0636] px-5 py-3 text-sm font-medium text-white transition-all hover:bg-[#8a0529] disabled:opacity-50"
             >
               {isLoading ? (
                 <svg
@@ -388,8 +377,8 @@ export default function ChatPage() {
               )}
             </button>
           </form>
-          <p className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
-            Information is based on Missouri House legislation data. Always verify official sources.
+          <p className="mt-3 text-center text-xs text-neutral-600">
+            AI can make mistakes. Verify with official sources.
           </p>
         </div>
       </div>
