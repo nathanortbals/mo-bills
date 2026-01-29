@@ -33,6 +33,18 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
+  // Update page title based on first user message
+  useEffect(() => {
+    const firstUserMessage = messages.find((m) => m.role === 'user');
+    if (firstUserMessage) {
+      const truncated =
+        firstUserMessage.content.length > 50
+          ? firstUserMessage.content.substring(0, 50) + '...'
+          : firstUserMessage.content;
+      document.title = `${truncated} | Show-Me AI`;
+    }
+  }, [messages]);
+
   // Load chat history on mount
   useEffect(() => {
     // Skip if we have an initial message (new chat) or already loaded
