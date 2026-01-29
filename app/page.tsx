@@ -2,7 +2,6 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import './seal-animation.css';
 
 export default function Home() {
@@ -43,26 +42,23 @@ export default function Home() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-neutral-950 px-4">
+    <div className="relative flex min-h-screen flex-col items-center overflow-hidden bg-neutral-950 px-4">
       {/* Missouri seal background with spotlight animation */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
         <div className="seal-container">
           <div className="seal-masked" />
         </div>
       </div>
-      <main className="relative z-10 flex w-full max-w-2xl flex-col items-center text-center">
-        {/* Logo */}
-        <div className="mb-8">
-          <Image src="/logo.svg" alt="Show-Me AI" width={120} height={120} />
-        </div>
-
+      <main className="relative z-10 flex w-full max-w-2xl flex-1 flex-col items-center justify-center text-center">
         {/* Title */}
-        <h1 className="mb-3 text-4xl font-semibold tracking-tight text-white md:text-5xl">
-          Show-Me AI
-        </h1>
-        <p className="mb-10 text-lg text-neutral-400">
-          Search, explore, and understand Missouri legislation
-        </p>
+        <div className="mb-10 rounded-3xl bg-neutral-950 px-8 py-6 shadow-[0_0_20px_10px_#0a0a0a,0_0_40px_25px_#0a0a0a,0_0_80px_50px_#0a0a0a]">
+          <h1 className="mb-6 font-(family-name:--font-playfair) text-5xl font-semibold tracking-wide text-white md:text-6xl">
+            SHOW-ME AI
+          </h1>
+          <p className="text-lg text-neutral-400">
+            Search, explore, and understand Missouri legislation
+          </p>
+        </div>
 
         {/* Input Form */}
         <form onSubmit={handleSubmit} className="w-full">
@@ -72,7 +68,7 @@ export default function Home() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about Missouri legislation..."
               disabled={isLoading}
-              className="w-full rounded-full border border-neutral-700 bg-neutral-900 px-6 py-4 pr-24 text-base text-white placeholder-neutral-500 transition-colors focus:border-blue-500/50 focus:outline-none disabled:opacity-50"
+              className="w-full rounded-full border border-neutral-700 bg-neutral-900 px-6 py-4 pr-24 text-base text-white placeholder-neutral-500 shadow-[0_0_15px_10px_#0a0a0a,0_0_40px_25px_#0a0a0a,0_0_80px_40px_#0a0a0a] transition-colors focus:border-blue-500/50 focus:outline-none disabled:opacity-50"
             />
             <button
               type="submit"
@@ -122,15 +118,15 @@ export default function Home() {
 
         {/* Suggested Questions */}
         <div className="mt-10">
-          <p className="mb-4 text-sm text-neutral-500">Try asking:</p>
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-3 rounded-3xl bg-neutral-950 p-4 shadow-[0_0_15px_10px_#0a0a0a,0_0_40px_25px_#0a0a0a,0_0_80px_40px_#0a0a0a]">
+            <p className="text-sm text-neutral-500">Try asking:</p>
             <button
               onClick={() =>
                 handleSuggestedQuestion(
                   'What healthcare related bills have been introduced this session?'
                 )
               }
-              className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
+              className="rounded-full border border-neutral-700 bg-slate-900 px-4 py-2 text-sm text-blue-300 transition-colors hover:border-neutral-600 hover:bg-slate-800"
             >
               What healthcare related bills have been introduced this session?
             </button>
@@ -138,7 +134,7 @@ export default function Home() {
               onClick={() =>
                 handleSuggestedQuestion('Which bills have upcoming committee hearings?')
               }
-              className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
+              className="rounded-full border border-neutral-700 bg-slate-900 px-4 py-2 text-sm text-blue-300 transition-colors hover:border-neutral-600 hover:bg-slate-800"
             >
               Which bills have upcoming committee hearings?
             </button>
@@ -146,28 +142,38 @@ export default function Home() {
               onClick={() =>
                 handleSuggestedQuestion('What education bills have passed the House this year?')
               }
-              className="rounded-full border border-blue-800/50 bg-blue-950/30 px-4 py-2 text-sm text-blue-200 transition-colors hover:border-blue-700/50 hover:bg-blue-900/30"
+              className="rounded-full border border-neutral-700 bg-slate-900 px-4 py-2 text-sm text-blue-300 transition-colors hover:border-neutral-600 hover:bg-slate-800"
             >
               What education bills have passed the House this year?
             </button>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-20 text-sm text-neutral-600">
-          <p>
-            Data from the{' '}
-            <a
-              href="https://house.mo.gov"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-neutral-500 underline hover:text-neutral-400"
-            >
-              Missouri House of Representatives
-            </a>
-          </p>
-        </div>
       </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 mb-8 text-center text-[13px] text-neutral-600">
+        <p>
+          Data from the{' '}
+          <a
+            href="https://house.mo.gov"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-neutral-500 underline hover:text-neutral-400"
+          >
+            Missouri House of Representatives
+          </a>
+          . Made by Nathan Ortbals.{' '}
+          <a
+            href="https://github.com/nathanortbals/show-me-ai"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-neutral-500 underline hover:text-neutral-400"
+          >
+            View project on GitHub
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }

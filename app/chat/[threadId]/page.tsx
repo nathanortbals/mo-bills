@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect, FormEvent, useCallback } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Streamdown } from 'streamdown';
-import Image from 'next/image';
 
 interface Message {
   id: string;
@@ -174,39 +174,34 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-neutral-950">
-      {/* Header */}
-      <div className="border-b border-neutral-800 bg-neutral-950">
-        <div className="mx-auto max-w-3xl px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Image src="/logo.svg" alt="Show-Me AI" width={36} height={36} />
-              <div>
-                <h1 className="text-base font-medium text-white">Show-Me AI</h1>
-              </div>
-            </div>
-            <button
-              onClick={handleNewChat}
-              className="flex items-center gap-2 rounded-full border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 transition-colors hover:border-neutral-600 hover:bg-neutral-900"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-                className="h-4 w-4"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              New
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-neutral-950">
+      {/* Fixed Header - Top Left */}
+      <div className="fixed left-0 top-0 z-20 flex items-center gap-4 px-6 py-4">
+        <Link href="/">
+          <h1 className="font-(family-name:--font-playfair) text-xl leading-none font-semibold tracking-wide text-white hover:text-neutral-300 transition-colors">
+            SHOW-ME AI
+          </h1>
+        </Link>
+        <button
+          onClick={handleNewChat}
+          className="flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-950/80 px-3 py-1.5 text-sm text-neutral-300 backdrop-blur-sm transition-colors hover:border-neutral-600 hover:bg-neutral-900"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="h-4 w-4"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          New
+        </button>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      {/* Messages - Full page scrollable */}
+      <div className="px-4 pb-32 pt-20">
         <div className="mx-auto max-w-3xl space-y-6">
           {isLoadingHistory && (
             <div className="flex items-center justify-center py-12">
@@ -244,7 +239,7 @@ export default function ChatPage() {
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                   message.role === 'user'
-                    ? 'bg-[#ad0636] text-white'
+                    ? 'bg-blue-600 text-white'
                     : 'bg-neutral-900 text-neutral-100'
                 }`}
               >
@@ -277,64 +272,66 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Input */}
-      <div className="border-t border-neutral-800 bg-neutral-950">
-        <div className="mx-auto max-w-3xl px-4 py-4">
-          <form onSubmit={handleSubmit} className="flex gap-3">
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about Missouri legislation..."
-              disabled={isLoading || isLoadingHistory}
-              className="flex-1 rounded-full border border-neutral-700 bg-neutral-900 px-5 py-3 text-sm text-white placeholder-neutral-500 transition-colors focus:border-blue-500/50 focus:outline-none disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={isLoading || isLoadingHistory || !input.trim()}
-              className="rounded-full bg-[#ad0636] px-5 py-3 text-sm font-medium text-white transition-all hover:bg-[#8a0529] disabled:opacity-50"
-            >
-              {isLoading ? (
-                <svg
-                  className="h-5 w-5 animate-spin"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
+      {/* Fixed Input Overlay */}
+      <div className="fixed bottom-0 left-0 right-0 z-20">
+        <div className="pointer-events-none bg-linear-to-t from-neutral-950 from-70% to-transparent pb-4 pt-8">
+          <div className="pointer-events-auto mx-auto max-w-3xl px-4">
+            <form onSubmit={handleSubmit} className="relative">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask about Missouri legislation..."
+                disabled={isLoading || isLoadingHistory}
+                className="w-full rounded-full border border-neutral-700 bg-neutral-900 px-5 py-3 pr-14 text-sm text-white placeholder-neutral-500 shadow-lg transition-colors focus:border-blue-500/50 focus:outline-none disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={isLoading || isLoadingHistory || !input.trim()}
+                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-[#ad0636] text-white transition-all hover:bg-[#8a0529] disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
                     stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="h-5 w-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-                  />
-                </svg>
-              )}
-            </button>
-          </form>
-          <p className="mt-3 text-center text-xs text-neutral-600">
-            AI can make mistakes. Verify with official sources.
-          </p>
+                    className="h-4 w-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                    />
+                  </svg>
+                )}
+              </button>
+            </form>
+            <p className="mt-3 text-center text-xs text-neutral-600">
+              AI can make mistakes. Verify with official sources.
+            </p>
+          </div>
         </div>
       </div>
     </div>
