@@ -232,7 +232,7 @@ export default function ChatPage() {
 
         {/* Messages - Scrollable */}
         <div className="flex-1 overflow-y-auto px-4 pb-32 pt-20">
-          <div className="mx-auto max-w-3xl space-y-6">
+          <div className="mx-auto max-w-3xl space-y-10">
             {isLoadingHistory && <LoadingSpinner message="Loading conversation..." />}
 
             {messages.map((message) => (

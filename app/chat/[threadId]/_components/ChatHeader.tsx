@@ -8,7 +8,7 @@ interface ChatHeaderProps {
 
 export default function ChatHeader({ onNewChat }: ChatHeaderProps) {
   return (
-    <div className="absolute left-0 top-0 z-20 flex items-center gap-4 px-6 py-4">
+    <div className="absolute left-0 right-0 top-0 z-20 flex items-center gap-4 border-b border-neutral-800 bg-neutral-950 px-6 py-4 xl:border-b-0 xl:bg-transparent">
       <Link href="/">
         <h1 className="font-(family-name:--font-playfair) text-xl leading-none font-semibold tracking-wide text-white hover:text-neutral-300 transition-colors">
           SHOW-ME AI
@@ -16,7 +16,7 @@ export default function ChatHeader({ onNewChat }: ChatHeaderProps) {
       </Link>
       <button
         onClick={onNewChat}
-        className="flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-950/80 px-3 py-1.5 text-sm text-neutral-300 backdrop-blur-sm transition-colors hover:border-neutral-600 hover:bg-neutral-900"
+        className="ml-auto flex items-center gap-2 rounded-full border border-neutral-700 bg-neutral-950/80 px-3 py-1.5 text-sm text-neutral-300 backdrop-blur-sm transition-colors hover:border-neutral-600 hover:bg-neutral-900"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

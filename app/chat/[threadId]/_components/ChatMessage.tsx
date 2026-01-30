@@ -10,21 +10,19 @@ interface ChatMessageProps {
 }
 
 export default function ChatMessage({ role, content, markdownComponents }: ChatMessageProps) {
-  return (
-    <div className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-          role === 'user' ? 'bg-blue-600 text-white' : 'bg-neutral-900 text-neutral-100'
-        }`}
-      >
-        {role === 'user' ? (
-          <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{content}</div>
-        ) : (
-          <div className="prose prose-sm prose-invert max-w-none wrap-break-word prose-p:leading-relaxed prose-pre:bg-neutral-800">
-            <Streamdown components={markdownComponents}>{content}</Streamdown>
-          </div>
-        )}
+  if (role === 'user') {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[85%] rounded-2xl bg-blue-600 px-4 py-3 text-white">
+          <div className="whitespace-pre-wrap wrap-break-word text-sm leading-relaxed">{content}</div>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="prose prose-sm prose-invert max-w-none wrap-break-word prose-p:my-1 prose-p:leading-normal prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:mb-1 prose-headings:mt-3 prose-pre:bg-neutral-800">
+      <Streamdown components={markdownComponents}>{content}</Streamdown>
     </div>
   );
 }
