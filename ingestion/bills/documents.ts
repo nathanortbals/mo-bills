@@ -6,7 +6,7 @@ import axios from 'axios';
 import { promises as fs } from 'fs';
 import path from 'path';
 import pdfParse from 'pdf-parse';
-import { DocumentInfo } from './types';
+import { DocumentInfo, ScrapedDocument } from './types';
 
 /**
  * Download bill document PDFs and extract text in-memory.
@@ -14,44 +14,35 @@ import { DocumentInfo } from './types';
  * No longer uploads to Supabase Storage.
  *
  * @param billNumber - Bill number (e.g., "HB 1366")
- * @param documentsString - Pipe-delimited string of documents (type | url || type | url)
+ * @param documents - Array of scraped document references
  * @param outputDir - Directory to save PDFs locally
  * @returns Array of document info including extracted text
  */
 export async function downloadBillDocuments(
   billNumber: string,
-  documentsString: string,
+  documents: ScrapedDocument[],
   outputDir: string
 ): Promise<DocumentInfo[]> {
-  if (!documentsString) {
+  if (!documents || documents.length === 0) {
     return [];
   }
 
-  // Parse the documents string
-  const documentPairs = documentsString.split(' || ');
   const documentInfo: DocumentInfo[] = [];
 
   // Create output directory for this bill
   const billDir = path.join(outputDir, billNumber);
   await fs.mkdir(billDir, { recursive: true });
 
-  for (const pair of documentPairs) {
-    const parts = pair.split(' | ');
-    if (parts.length !== 2) {
-      continue;
-    }
+  for (const doc of documents) {
+    const { doc_id, type, title, url } = doc;
 
-    const docType = parts[0].trim();
-    const docUrl = parts[1].trim();
-
-    // Create safe filename
-    const safeDocType = docType.replace(/ /g, '_').replace(/\//g, '_');
-    const filename = `${billNumber}_${safeDocType}.pdf`;
+    // Use doc_id for filename (it's already unique per document)
+    const filename = `${doc_id}.pdf`;
     const filepath = path.join(billDir, filename);
 
     try {
-      console.log(`    Downloading ${docType}...`);
-      const response = await axios.get(docUrl, {
+      console.log(`    Downloading ${doc_id} (${type} - ${title})...`);
+      const response = await axios.get(url, {
         responseType: 'arraybuffer',
         timeout: 30000,
       });
@@ -79,14 +70,15 @@ export async function downloadBillDocuments(
       }
 
       documentInfo.push({
-        type: docType,
-        url: docUrl,
+        doc_id,
+        type,
+        title,
+        url,
         local_path: filepath,
-        storage_path: null, // No longer uploading to storage
         extracted_text: extractedText,
       });
     } catch (error) {
-      console.log(`    Error downloading ${docType}: ${error}`);
+      console.log(`    Error downloading ${doc_id}: ${error}`);
     }
   }
 

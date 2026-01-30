@@ -129,8 +129,8 @@ export async function scrapeBillDetails(
   const url = getBillDetailUrl(billNumber, year, sessionCode);
   await page.goto(url, { waitUntil: 'networkidle' });
 
-  const details = await page.evaluate(() => {
-    const details: BillDetails = {
+  const details = await page.evaluate((): BillDetails => {
+    const result: BillDetails = {
       bill_number: '',
       title: '',
       sponsor: '',
@@ -142,13 +142,13 @@ export async function scrapeBillDetails(
       bill_string: '',
       calendar_status: '',
       hearing_status: '',
-      bill_documents: '',
+      bill_documents: [],
     };
 
     // Extract bill number from h1
     const h1 = document.querySelector('h1');
     if (h1) {
-      details.bill_number = h1.textContent?.trim() || '';
+      result.bill_number = h1.textContent?.trim() || '';
     }
 
     // Extract title from main div
@@ -161,10 +161,10 @@ export async function scrapeBillDetails(
         .filter((l) => l.length > 0);
       let foundBill = false;
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i] === details.bill_number || lines[i].indexOf(details.bill_number) >= 0) {
+        if (lines[i] === result.bill_number || lines[i].indexOf(result.bill_number) >= 0) {
           foundBill = true;
         } else if (foundBill) {
-          details.title = lines[i];
+          result.title = lines[i];
           break;
         }
       }
@@ -173,98 +173,91 @@ export async function scrapeBillDetails(
     // Extract sponsor
     const sponsorLink = document.querySelector('a[href*="MemberDetails"]');
     if (sponsorLink) {
-      details.sponsor = sponsorLink.textContent?.trim() || '';
-      details.sponsor_url = (sponsorLink as HTMLAnchorElement).href;
+      result.sponsor = sponsorLink.textContent?.trim() || '';
+      result.sponsor_url = (sponsorLink as HTMLAnchorElement).href;
     }
 
     // Extract various labeled fields by searching for label text
     const allElements = Array.from(document.querySelectorAll('main *'));
-    const labels = {
-      'Proposed Effective Date:': 'proposed_effective_date',
-      'LR Number:': 'lr_number',
-      'Last Action:': 'last_action',
-      'Bill String:': 'bill_string',
-      'Next House Hearing:': 'hearing_status',
-      'Calendar:': 'calendar_status',
-    };
+    const labelTexts = [
+      'Proposed Effective Date:',
+      'LR Number:',
+      'Last Action:',
+      'Bill String:',
+      'Next House Hearing:',
+      'Calendar:',
+    ];
 
     for (let i = 0; i < allElements.length; i++) {
       const el = allElements[i];
       const text = el.textContent?.trim() || '';
-      if (text in labels) {
+      if (labelTexts.includes(text)) {
         const nextEl = allElements[i + 1];
         if (nextEl) {
-          const fieldName = labels[text as keyof typeof labels] as keyof BillDetails;
-          details[fieldName] = nextEl.textContent?.trim() || '';
+          const value = nextEl.textContent?.trim() || '';
+          switch (text) {
+            case 'Proposed Effective Date:':
+              result.proposed_effective_date = value;
+              break;
+            case 'LR Number:':
+              result.lr_number = value;
+              break;
+            case 'Last Action:':
+              result.last_action = value;
+              break;
+            case 'Bill String:':
+              result.bill_string = value;
+              break;
+            case 'Next House Hearing:':
+              result.hearing_status = value;
+              break;
+            case 'Calendar:':
+              result.calendar_status = value;
+              break;
+          }
         }
       }
     }
 
-    // Extract bill documents - distinguish "Bill Text" from "Bill Summary" sections
+    // Extract bill documents from definition list structure
+    // DOM structure: <dt>1542H.01I</dt><dd><a href="...">Introduced</a></dd>
+    // doc_id comes from <dt>, title from link text, type from URL path
     const billDocuments = document.getElementById('BillDocuments');
-    const documentStrings: string[] = [];
     if (billDocuments) {
-      // Find all section headers to determine boundaries
-      const allElements = Array.from(billDocuments.children);
-      let currentSection: 'bill_text' | 'bill_summary' | null = null;
+      const dtElements = Array.from(billDocuments.querySelectorAll('dt'));
+      for (const dt of dtElements) {
+        const docId = dt.textContent?.trim() || '';
+        if (!docId) continue;
 
-      for (const element of allElements) {
-        const text = element.textContent?.trim() || '';
+        // Find the next <dd> sibling with a PDF link
+        let nextSibling = dt.nextElementSibling;
+        while (nextSibling && nextSibling.tagName === 'DD') {
+          const pdfLink = nextSibling.querySelector('a[href*=".pdf"]') as HTMLAnchorElement | null;
+          if (pdfLink) {
+            const docUrl = pdfLink.href;
+            const docTitle = pdfLink.textContent?.trim() || '';
 
-        // Check for section headers
-        if (text === 'Bill Text' || text.startsWith('Bill Text')) {
-          currentSection = 'bill_text';
-          continue;
-        }
-        if (text === 'Bill Summary' || text.startsWith('Bill Summary')) {
-          currentSection = 'bill_summary';
-          continue;
-        }
+            // Skip Roll Call and Witnesses documents
+            if (docTitle.indexOf('Roll Call') === -1 && docTitle.indexOf('Witnesses') === -1) {
+              // Determine document type from URL path: sumpdf = summary, hlrbillspdf = bill text
+              const isSummary = docUrl.includes('/sumpdf/');
+              const docType = isSummary ? 'Bill Summary' : 'Bill Text';
 
-        // Extract documents with appropriate prefix based on section
-        if (currentSection) {
-          const docLinks = Array.from(element.querySelectorAll('a[href*=".pdf"]'));
-          for (const link of docLinks) {
-            const docType = link.textContent?.trim() || '';
-            const docUrl = (link as HTMLAnchorElement).href;
-            if (
-              docType &&
-              docUrl &&
-              docType.indexOf('Roll Call') === -1 &&
-              docType.indexOf('Witnesses') === -1
-            ) {
-              // Prefix summary documents to distinguish them
-              const finalDocType =
-                currentSection === 'bill_summary' ? `Summary - ${docType}` : docType;
-              documentStrings.push(finalDocType + ' | ' + docUrl);
+              result.bill_documents.push({
+                doc_id: docId,
+                type: docType,
+                title: docTitle,
+                url: docUrl,
+              });
             }
+            break; // Only take the first PDF link per <dt>
           }
-        }
-      }
-
-      // Fallback: if no sections found, use URL pattern to distinguish
-      if (documentStrings.length === 0) {
-        const docLinks = Array.from(billDocuments.querySelectorAll('a[href*=".pdf"]'));
-        for (const link of docLinks) {
-          const docType = link.textContent?.trim() || '';
-          const docUrl = (link as HTMLAnchorElement).href;
-          if (
-            docType &&
-            docUrl &&
-            docType.indexOf('Roll Call') === -1 &&
-            docType.indexOf('Witnesses') === -1
-          ) {
-            // Use URL pattern: sumpdf = summary, hlrbillspdf = bill text
-            const isSummary = docUrl.includes('sumpdf');
-            const finalDocType = isSummary ? `Summary - ${docType}` : docType;
-            documentStrings.push(finalDocType + ' | ' + docUrl);
-          }
+          nextSibling = nextSibling.nextElementSibling;
         }
       }
     }
-    details.bill_documents = documentStrings.join(' || ');
 
-    return details;
+    return result;
   });
 
   return details as BillDetails;

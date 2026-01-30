@@ -30,17 +30,24 @@ export interface BillDetails {
   bill_string: string;
   calendar_status: string;
   hearing_status: string;
-  bill_documents: string;
+  bill_documents: ScrapedDocument[];
 }
 
 /**
- * Document information including extracted text
+ * Scraped document reference from the bill page
  */
-export interface DocumentInfo {
-  type: string;
+export interface ScrapedDocument {
+  doc_id: string;
+  type: 'Bill Text' | 'Bill Summary';
+  title: string;
   url: string;
+}
+
+/**
+ * Document information including extracted text (after PDF processing)
+ */
+export interface DocumentInfo extends ScrapedDocument {
   local_path: string;
-  storage_path: string | null;
   extracted_text: string | null;
 }
 
@@ -60,7 +67,7 @@ export interface BillData {
   calendar_status?: string;
   hearing_status?: string;
   bill_url?: string;
-  bill_documents?: string;
+  bill_documents?: ScrapedDocument[];
   cosponsors?: string;
   actions?: string;
   hearings?: string;

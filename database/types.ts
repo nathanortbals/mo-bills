@@ -53,32 +53,35 @@ export type Database = {
         Row: {
           bill_id: string
           created_at: string | null
+          document_id: string
+          document_title: string
           document_type: string
-          document_url: string | null
-          extracted_text: string | null
+          document_url: string
+          embeddings_generated_at: string | null
+          extracted_text: string
           id: string
-          storage_path: string | null
-          text_extracted_at: string | null
         }
         Insert: {
           bill_id: string
           created_at?: string | null
+          document_id: string
+          document_title: string
           document_type: string
-          document_url?: string | null
-          extracted_text?: string | null
+          document_url: string
+          embeddings_generated_at?: string | null
+          extracted_text: string
           id?: string
-          storage_path?: string | null
-          text_extracted_at?: string | null
         }
         Update: {
           bill_id?: string
           created_at?: string | null
+          document_id?: string
+          document_title?: string
           document_type?: string
-          document_url?: string | null
-          extracted_text?: string | null
+          document_url?: string
+          embeddings_generated_at?: string | null
+          extracted_text?: string
           id?: string
-          storage_path?: string | null
-          text_extracted_at?: string | null
         }
         Relationships: [
           {
@@ -92,6 +95,7 @@ export type Database = {
       }
       bill_embeddings: {
         Row: {
+          bill_document_id: string
           content: string
           created_at: string | null
           embedding: string | null
@@ -99,6 +103,7 @@ export type Database = {
           metadata: Json | null
         }
         Insert: {
+          bill_document_id?: string // Auto-populated by trigger from metadata
           content: string
           created_at?: string | null
           embedding?: string | null
@@ -106,13 +111,22 @@ export type Database = {
           metadata?: Json | null
         }
         Update: {
+          bill_document_id?: string
           content?: string
           created_at?: string | null
           embedding?: string | null
           id?: string
           metadata?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bill_embeddings_bill_document_id_fkey"
+            columns: ["bill_document_id"]
+            isOneToOne: false
+            referencedRelation: "bill_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bill_hearings: {
         Row: {
@@ -209,8 +223,6 @@ export type Database = {
           calendar_status: string | null
           created_at: string | null
           description: string | null
-          embeddings_generated: boolean | null
-          embeddings_generated_at: string | null
           hearing_status: string | null
           id: string
           last_action: string | null
@@ -227,8 +239,6 @@ export type Database = {
           calendar_status?: string | null
           created_at?: string | null
           description?: string | null
-          embeddings_generated?: boolean | null
-          embeddings_generated_at?: string | null
           hearing_status?: string | null
           id?: string
           last_action?: string | null
@@ -245,8 +255,6 @@ export type Database = {
           calendar_status?: string | null
           created_at?: string | null
           description?: string | null
-          embeddings_generated?: boolean | null
-          embeddings_generated_at?: string | null
           hearing_status?: string | null
           id?: string
           last_action?: string | null

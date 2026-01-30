@@ -20,7 +20,7 @@ import {
 interface ChunkMetadata {
   bill_id: string;
   bill_number: string;
-  document_id?: string;
+  document_id: string;
   content_type: string;
   chunk_index: number;
   doc_type: DocumentType;
@@ -37,92 +37,35 @@ interface ChunkMetadata {
 
 /**
  * Filter document info to only include embeddable documents.
- * Returns "Introduced" version and the most recent version (if different).
+ * Returns all Bill Text and Bill Summary documents.
  * Excludes fiscal notes (.ORG files).
  *
  * @param documentInfo - Array of document info from download
  * @returns Filtered array of embeddable documents
  */
 export function filterEmbeddableDocuments(documentInfo: DocumentInfo[]): DocumentInfo[] {
-  // Filter out fiscal notes and documents without extracted text
-  const legislativeDocs = documentInfo.filter((doc) => {
+  return documentInfo.filter((doc) => {
     const hasText = !!doc.extracted_text;
-    const isFiscalNote = doc.url?.includes('.ORG') || doc.type?.toLowerCase().includes('fiscal');
+    const isFiscalNote = doc.url?.includes('.ORG') || doc.doc_id?.includes('.ORG');
     return hasText && !isFiscalNote;
   });
-
-  if (legislativeDocs.length === 0) {
-    return [];
-  }
-
-  // Document type hierarchy for determining most recent
-  const hierarchy = [
-    'truly agreed',
-    'truly_agreed',
-    'senate_comm_sub',
-    'senate comm sub',
-    'senate committee substitute',
-    'perfected',
-    'committee',
-    'introduced',
-  ];
-
-  // Find introduced version
-  let introduced: DocumentInfo | null = null;
-  for (const doc of legislativeDocs) {
-    const docTypeLower = (doc.type || '').toLowerCase();
-    if (docTypeLower.includes('introduced')) {
-      introduced = doc;
-      break;
-    }
-  }
-
-  // Find most recent version based on hierarchy
-  let mostRecent: DocumentInfo | null = null;
-  for (const priorityType of hierarchy) {
-    for (const doc of legislativeDocs) {
-      const docTypeLower = (doc.type || '').toLowerCase().replace(/ /g, '_');
-      if (docTypeLower.includes(priorityType)) {
-        mostRecent = doc;
-        break;
-      }
-    }
-    if (mostRecent) {
-      break;
-    }
-  }
-
-  // Return introduced + most recent (deduplicated)
-  const result: DocumentInfo[] = [];
-  if (introduced) {
-    result.push(introduced);
-  }
-  if (mostRecent && mostRecent !== introduced) {
-    result.push(mostRecent);
-  }
-
-  // If we didn't find either, return the first legislative doc
-  if (result.length === 0 && legislativeDocs.length > 0) {
-    result.push(legislativeDocs[0]);
-  }
-
-  return result;
 }
 
 /**
  * Process text into embeddings and store them.
  *
- * @param db - Database client
  * @param vectorStore - Supabase vector store
  * @param billId - Bill UUID
+ * @param documentId - Document ID from Missouri House website
  * @param rawText - Raw extracted text
- * @param contentType - Document type (e.g., "Introduced")
+ * @param contentType - Document title (e.g., "Introduced")
  * @param billMetadata - Bill metadata for embedding context
  * @returns Number of embeddings created
  */
 async function processDocumentText(
   vectorStore: SupabaseVectorStore,
   billId: string,
+  documentId: string,
   rawText: string,
   contentType: string,
   billMetadata: {
@@ -152,6 +95,7 @@ async function processDocumentText(
     const metadata: ChunkMetadata = {
       bill_id: billId,
       bill_number: billMetadata.bill_number,
+      document_id: documentId,
       content_type: contentType,
       chunk_index: i,
       doc_type: documentType,
@@ -241,24 +185,23 @@ export async function generateEmbeddingsForBill(
       continue;
     }
 
-    console.log(`    Generating embeddings for ${doc.type}...`);
+    console.log(`    Generating embeddings for ${doc.title} (${doc.type})...`);
     try {
       const count = await processDocumentText(
         vectorStore,
         billId,
+        doc.doc_id,
         doc.extracted_text,
-        doc.type,
+        doc.title,
         billMetadata
       );
       totalEmbeddings += count;
-    } catch (error) {
-      console.log(`    Warning: Could not generate embeddings for ${doc.type}: ${error}`);
-    }
-  }
 
-  // Mark bill as having embeddings generated
-  if (totalEmbeddings > 0) {
-    await db.markBillEmbeddingsGenerated(billId);
+      // Mark document as having embeddings generated
+      await db.markDocumentEmbeddingsGenerated(billId, doc.doc_id);
+    } catch (error) {
+      console.log(`    Warning: Could not generate embeddings for ${doc.title}: ${error}`);
+    }
   }
 
   return totalEmbeddings;

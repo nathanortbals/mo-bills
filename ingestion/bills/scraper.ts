@@ -233,29 +233,21 @@ class MoHouseBillScraper {
       }
     }
 
-    // Prepare documents data
+    // Prepare documents data (only include documents with extracted text)
     const documentsData: DocumentData[] = [];
-    if (documentInfo) {
+    if (documentInfo && documentInfo.length > 0) {
       for (const docInfo of documentInfo) {
+        if (!docInfo.extracted_text) {
+          console.log(`    Skipping ${docInfo.doc_id} - no extracted text`);
+          continue;
+        }
         documentsData.push({
+          document_id: docInfo.doc_id,
+          document_title: docInfo.title,
           document_type: docInfo.type,
           document_url: docInfo.url,
-          storage_path: docInfo.storage_path || undefined,
-          extracted_text: docInfo.extracted_text || undefined,
+          extracted_text: docInfo.extracted_text,
         });
-      }
-    } else if (billData.bill_documents) {
-      const documents = billData.bill_documents.split(' || ');
-      for (const docStr of documents) {
-        const parts = docStr.split(' | ');
-        if (parts.length === 2) {
-          documentsData.push({
-            document_type: parts[0].trim(),
-            document_url: parts[1].trim(),
-            storage_path: undefined,
-            extracted_text: undefined,
-          });
-        }
       }
     }
 
@@ -303,7 +295,7 @@ async function processBill(
     // Download PDFs and extract text
     let documentInfo: DocumentInfo[] = [];
     try {
-      documentInfo = await downloadBillDocuments(billNumber, details.bill_documents || '', pdfDir);
+      documentInfo = await downloadBillDocuments(billNumber, details.bill_documents || [], pdfDir);
     } catch (e) {
       console.log(`  Warning: Could not download PDFs for ${billNumber}: ${e}`);
     }

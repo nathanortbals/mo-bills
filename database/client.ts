@@ -50,15 +50,11 @@ export type HearingData = Omit<
 
 /**
  * Document data for bill insertion (without bill_id, added during insertion)
- * Note: storage_path is nullable (PDFs are now processed in-memory, not stored)
- * Note: extracted_text is optional (populated during scraping for embedding generation)
  */
 export type DocumentData = Omit<
   Database['public']['Tables']['bill_documents']['Insert'],
   'bill_id' | 'id' | 'created_at'
-> & {
-  extracted_text?: string | null;
-};
+>;
 
 /**
  * Nested query result types
@@ -595,10 +591,11 @@ export class DatabaseClient {
           try {
             await this._client.from('bill_documents').insert({
               bill_id: billId,
+              document_id: doc.document_id,
+              document_title: doc.document_title,
               document_type: doc.document_type,
               document_url: doc.document_url,
-              storage_path: doc.storage_path || null,
-              extracted_text: doc.extracted_text || null,
+              extracted_text: doc.extracted_text,
             });
           } catch (error) {
             console.warn(`Warning: Could not insert document: ${error}`);
@@ -617,23 +614,17 @@ export class DatabaseClient {
    *
    * @param sessionId - Session UUID
    * @param limit - Optional limit on number of bills to return
-   * @param skipEmbedded - If true, only return bills without embeddings
    * @returns Array of bill records with id and bill_number
    */
   async getBillsForSession(
     sessionId: string,
-    limit?: number,
-    skipEmbedded: boolean = false
-  ): Promise<Array<{ id: string; bill_number: string; embeddings_generated: boolean | null }>> {
+    limit?: number
+  ): Promise<Array<{ id: string; bill_number: string }>> {
     try {
       let query = this._client
         .from('bills')
-        .select('id, bill_number, embeddings_generated')
+        .select('id, bill_number')
         .eq('session_id', sessionId);
-
-      if (skipEmbedded) {
-        query = query.or('embeddings_generated.is.null,embeddings_generated.eq.false');
-      }
 
       if (limit) {
         query = query.limit(limit);
@@ -739,24 +730,20 @@ export class DatabaseClient {
     try {
       const allDocs = await this.getBillDocuments(billId);
 
-      // Filter out fiscal notes (contain .ORG in storage path or document type)
-      // Include documents with either storage_path or extracted_text (new flow doesn't use storage)
+      // Filter out fiscal notes only (include both Bill Text and Bill Summary)
       const legislativeDocs = allDocs.filter((doc) => {
-        const hasContent = doc.storage_path || doc.extracted_text;
-        const isFiscalNote = doc.storage_path?.includes('.ORG') || doc.document_url?.includes('.ORG');
-        return hasContent && !isFiscalNote;
+        const isFiscalNote = doc.document_url?.includes('.ORG') || doc.document_id?.includes('.ORG');
+        return !isFiscalNote;
       });
 
       if (legislativeDocs.length === 0) {
         return [];
       }
 
-      // Document type hierarchy for determining most recent
+      // Document title hierarchy for determining most recent version
       const hierarchy = [
         'truly agreed',
-        'truly_agreed',
-        'senate_comm_sub',
-        'senate comm sub',
+        'senate substitute',
         'senate committee substitute',
         'perfected',
         'committee',
@@ -766,8 +753,8 @@ export class DatabaseClient {
       // Find introduced version
       let introduced: BillDocument | null = null;
       for (const doc of legislativeDocs) {
-        const docTypeLower = (doc.document_type || '').toLowerCase();
-        if (docTypeLower.includes('introduced')) {
+        const titleLower = (doc.document_title || '').toLowerCase();
+        if (titleLower.includes('introduced')) {
           introduced = doc;
           break;
         }
@@ -777,8 +764,8 @@ export class DatabaseClient {
       let mostRecent: BillDocument | null = null;
       for (const priorityType of hierarchy) {
         for (const doc of legislativeDocs) {
-          const docTypeLower = (doc.document_type || '').toLowerCase().replace(/ /g, '_');
-          if (docTypeLower.includes(priorityType)) {
+          const titleLower = (doc.document_title || '').toLowerCase();
+          if (titleLower.includes(priorityType)) {
             mostRecent = doc;
             break;
           }
@@ -931,23 +918,24 @@ export class DatabaseClient {
   }
 
   /**
-   * Mark a bill as having embeddings generated.
+   * Mark a document as having embeddings generated.
    *
    * @param billId - Bill UUID
+   * @param documentId - Document ID (from Missouri House website, e.g., "2918H.01I")
    */
-  async markBillEmbeddingsGenerated(billId: string): Promise<void> {
+  async markDocumentEmbeddingsGenerated(billId: string, documentId: string): Promise<void> {
     try {
       const { error } = await this._client
-        .from('bills')
+        .from('bill_documents')
         .update({
-          embeddings_generated: true,
           embeddings_generated_at: new Date().toISOString(),
         })
-        .eq('id', billId);
+        .eq('bill_id', billId)
+        .eq('document_id', documentId);
 
       if (error) throw error;
     } catch (error) {
-      throw new Error(`Failed to mark bill embeddings as generated: ${error}`);
+      throw new Error(`Failed to mark document embeddings as generated: ${error}`);
     }
   }
 }
