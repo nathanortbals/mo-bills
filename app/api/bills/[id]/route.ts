@@ -42,7 +42,7 @@ export async function GET(
         is_primary,
         session_legislators(
           district,
-          legislators(name, party_affiliation, picture_url)
+          legislators(id, name, party_affiliation, picture_url)
         )
       `)
       .eq('bill_id', id)
@@ -50,13 +50,14 @@ export async function GET(
 
     const sponsors = (sponsorsData || [])
       .map((s: any) => ({
+        id: s.session_legislators?.legislators?.id || '',
         name: s.session_legislators?.legislators?.name || 'Unknown',
         party: s.session_legislators?.legislators?.party_affiliation || null,
         district: s.session_legislators?.district || null,
         picture_url: s.session_legislators?.legislators?.picture_url || null,
         is_primary: s.is_primary,
       }))
-      .filter((s: any) => s.name !== 'Unknown');
+      .filter((s: any) => s.name !== 'Unknown' && s.id);
 
     // Fetch actions
     const { data: actionsData } = await supabase

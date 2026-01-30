@@ -10,6 +10,7 @@ import { getSupabaseClient } from '@/database/client';
 interface SponsoredBillResult {
   is_primary: boolean;
   bills: {
+    id: string;
     bill_number: string;
     title: string | null;
     description: string | null;
@@ -72,6 +73,7 @@ export const getLegislatorBills = tool(
       .select(`
         is_primary,
         bills(
+          id,
           bill_number,
           title,
           description,
@@ -110,7 +112,7 @@ export const getLegislatorBills = tool(
       primaryBills.forEach((b) => {
         const bill = b.bills!;
         const session = bill.sessions;
-        results.push(`- ${bill.bill_number} (${session?.year} ${session?.session_code}): ${bill.title || bill.description || 'No title'}`);
+        results.push(`- ${bill.bill_number} (ID: ${bill.id}) (${session?.year} ${session?.session_code}): ${bill.title || bill.description || 'No title'}`);
       });
     }
 
@@ -120,7 +122,7 @@ export const getLegislatorBills = tool(
       coBills.slice(0, 20).forEach((b) => {
         const bill = b.bills!;
         const session = bill.sessions;
-        results.push(`- ${bill.bill_number} (${session?.year} ${session?.session_code}): ${bill.title || bill.description || 'No title'}`);
+        results.push(`- ${bill.bill_number} (ID: ${bill.id}) (${session?.year} ${session?.session_code}): ${bill.title || bill.description || 'No title'}`);
       });
       if (coBills.length > 20) {
         results.push(`... and ${coBills.length - 20} more co-sponsored bills`);

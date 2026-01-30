@@ -1,36 +1,46 @@
 import Image from 'next/image';
 import type { BillDetails } from '@/app/types/bill';
-import CollapsibleSection from './CollapsibleSection';
+import CollapsibleSection from '../CollapsibleSection';
 
 type Sponsor = BillDetails['sponsors'][number];
 
 interface BillSponsorsSectionProps {
   sponsors: Sponsor[];
+  onSponsorClick?: (state: { type: 'legislator'; id: string }) => void;
 }
 
-export default function BillSponsorsSection({ sponsors }: BillSponsorsSectionProps) {
+export default function BillSponsorsSection({ sponsors, onSponsorClick }: BillSponsorsSectionProps) {
   if (sponsors.length === 0) return null;
 
   const primarySponsor = sponsors.find((s) => s.is_primary);
   const cosponsors = sponsors.filter((s) => !s.is_primary);
+
+  const handleSponsorClick = (sponsor: Sponsor) => {
+    if (onSponsorClick && sponsor.id) {
+      onSponsorClick({ type: 'legislator', id: sponsor.id });
+    }
+  };
 
   return (
     <CollapsibleSection title="Sponsors">
       <div className="space-y-3">
         {/* Primary Sponsor */}
         {primarySponsor && (
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => handleSponsorClick(primarySponsor)}
+            className="flex items-center gap-3 rounded-lg p-2 text-left hover:bg-neutral-800/50 transition-colors"
+          >
             {primarySponsor.picture_url ? (
               <Image
                 src={primarySponsor.picture_url}
                 alt={primarySponsor.name}
                 width={48}
                 height={48}
-                className="h-12 w-12 rounded-full object-cover bg-neutral-800"
+                className="h-12 w-12 rounded-lg object-cover bg-neutral-800"
                 unoptimized
               />
             ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-800 text-neutral-500">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-neutral-800 text-neutral-500">
                 <svg
                   className="h-6 w-6"
                   fill="none"
@@ -54,17 +64,25 @@ export default function BillSponsorsSection({ sponsors }: BillSponsorsSectionPro
                 {primarySponsor.party}
               </p>
             </div>
-          </div>
+          </button>
         )}
 
         {/* Cosponsors */}
         {cosponsors.length > 0 && (
-          <div className="text-sm">
+          <div className="text-sm pl-2">
             <span className="text-neutral-500">Co-sponsors: </span>
             <span className="text-neutral-400">
-              {cosponsors
-                .map((s) => `${s.name}${s.party ? ` (${s.party})` : ''}`)
-                .join(', ')}
+              {cosponsors.map((s, index) => (
+                <span key={s.id}>
+                  <button
+                    onClick={() => handleSponsorClick(s)}
+                    className="text-neutral-300 hover:text-white hover:underline transition-colors"
+                  >
+                    {s.name}{s.party ? ` (${s.party.charAt(0)})` : ''}
+                  </button>
+                  {index < cosponsors.length - 1 && ', '}
+                </span>
+              ))}
             </span>
           </div>
         )}

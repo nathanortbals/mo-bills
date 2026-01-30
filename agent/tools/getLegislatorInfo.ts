@@ -82,8 +82,7 @@ export const getLegislatorInfo = tool(
     const currentDistrict = typedSessionLeg?.[0]?.district;
     const sessionInfo = typedSessionLeg?.[0]?.sessions;
 
-    const result = `ID: ${leg.id}
-Name: ${leg.name}
+    const result = `Legislator: ${leg.name} (ID: ${leg.id})
 District: ${currentDistrict ? `${currentDistrict}${sessionInfo ? ` (${sessionInfo.year} ${sessionInfo.session_code})` : ''}` : 'N/A'}
 Type: ${leg.legislator_type || 'N/A'}
 Party: ${leg.party_affiliation || 'N/A'}

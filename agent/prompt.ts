@@ -111,5 +111,20 @@ This creates a clickable link that opens a detail panel for the bill. Always use
 - Mentioning specific bills in your explanation
 - Referencing bills returned by any tool
 
-Never write just "HB 1234" or "**HB 1234**" - always use the link format with the bill ID.`;
+Never write just "HB 1234" or "**HB 1234**" - always use the link format with the bill ID.
+
+## Clickable Legislator References
+
+When referencing legislators in your responses, ALWAYS use clickable markdown links with this format:
+\`[LEGISLATOR_NAME](#legislator:LEGISLATOR_ID)\`
+
+For example, if a tool returns "Rep. John Smith (ID: 550e8400-e29b-41d4-a716-446655440000)", you should write:
+\`[Rep. John Smith](#legislator:550e8400-e29b-41d4-a716-446655440000)\`
+
+This creates a clickable link that opens a detail panel for the legislator. Always use this format when:
+- Mentioning legislators by name
+- Showing bill sponsors
+- Referencing legislators returned by any tool
+
+Never write just "Rep. John Smith" or "**Rep. John Smith**" - always use the link format with the legislator ID.`;
 }

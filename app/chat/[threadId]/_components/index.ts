@@ -5,6 +5,7 @@ export { default as LoadingSpinner } from './LoadingSpinner';
 export { default as ChatTypingIndicator } from './ChatTypingIndicator';
 export { default as Drawer } from './Drawer';
 export { default as BillDrawerContent } from './bill-drawer/BillDrawerContent';
+export { default as LegislatorDrawerContent } from './legislator-drawer/LegislatorDrawerContent';
 export {
   useMarkdownComponents,
   parseHashToDrawerState,

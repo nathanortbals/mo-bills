@@ -1,5 +1,5 @@
 import type { BillDetails } from '@/app/types/bill';
-import CollapsibleSection from './CollapsibleSection';
+import CollapsibleSection from '../CollapsibleSection';
 
 type Document = BillDetails['documents'][number];
 

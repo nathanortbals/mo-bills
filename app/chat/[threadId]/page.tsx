@@ -10,6 +10,7 @@ import {
   ChatTypingIndicator,
   Drawer,
   BillDrawerContent,
+  LegislatorDrawerContent,
   useMarkdownComponents,
   parseHashToDrawerState,
   drawerStateToHash,
@@ -33,7 +34,8 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [drawerState, setDrawerState] = useState<DrawerState>(null);
-  const [drawerTitle, setDrawerTitle] = useState<string>('Details');
+  const [drawerHistory, setDrawerHistory] = useState<DrawerState[]>([]);
+  const [drawerTitle, setDrawerTitle] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialMessageSentRef = useRef(false);
   const historyLoadedRef = useRef(false);
@@ -50,19 +52,40 @@ export default function ChatPage() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Close drawer and clear hash
+  // Close drawer and clear hash and history
   const closeDrawer = useCallback(() => {
     setDrawerState(null);
-    setDrawerTitle('Details');
+    setDrawerHistory([]);
+    setDrawerTitle('');
     history.pushState(null, '', window.location.pathname + window.location.search);
   }, []);
 
-  // Open drawer with state
-  const openDrawer = useCallback((state: DrawerState) => {
+  // Open drawer with state, optionally pushing current state to history
+  const openDrawer = useCallback((state: DrawerState, pushToHistory = false) => {
+    if (pushToHistory && drawerState) {
+      setDrawerHistory((prev) => [...prev, drawerState]);
+    }
     setDrawerState(state);
+    setDrawerTitle(''); // Reset title while new content loads
     const hash = drawerStateToHash(state);
     history.pushState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
-  }, []);
+  }, [drawerState]);
+
+  // Go back to previous drawer state
+  const goBackDrawer = useCallback(() => {
+    if (drawerHistory.length === 0) return;
+
+    const newHistory = [...drawerHistory];
+    const previousState = newHistory.pop();
+    setDrawerHistory(newHistory);
+
+    if (previousState) {
+      setDrawerState(previousState);
+      setDrawerTitle(''); // Reset title while content loads
+      const hash = drawerStateToHash(previousState);
+      history.pushState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
+    }
+  }, [drawerHistory]);
 
   // Markdown components with drawer link handling
   const markdownComponents = useMarkdownComponents(openDrawer);
@@ -206,16 +229,20 @@ export default function ChatPage() {
     await sendMessage(messageText);
   };
 
+  // Navigate to a new drawer from within a drawer (e.g., clicking a sponsor)
+  const navigateDrawer = useCallback((state: DrawerState) => {
+    openDrawer(state, true);
+  }, [openDrawer]);
+
   // Render drawer content based on state
   const renderDrawerContent = () => {
     if (!drawerState) return null;
 
     switch (drawerState.type) {
       case 'bill':
-        return <BillDrawerContent billId={drawerState.id} onTitleChange={setDrawerTitle} />;
+        return <BillDrawerContent billId={drawerState.id} onTitleChange={setDrawerTitle} onNavigate={navigateDrawer} />;
       case 'legislator':
-        // Future: LegislatorDrawerContent
-        return <div className="text-neutral-400">Legislator details coming soon...</div>;
+        return <LegislatorDrawerContent legislatorId={drawerState.id} onTitleChange={setDrawerTitle} onNavigate={navigateDrawer} />;
       case 'document':
         // Future: DocumentDrawerContent
         return <div className="text-neutral-400">Document details coming soon...</div>;
@@ -260,7 +287,13 @@ export default function ChatPage() {
       </div>
 
       {/* Dynamic Drawer - sits next to chat on desktop */}
-      <Drawer isOpen={!!drawerState} onClose={closeDrawer} title={drawerTitle}>
+      <Drawer
+        isOpen={!!drawerState}
+        onClose={closeDrawer}
+        onBack={goBackDrawer}
+        canGoBack={drawerHistory.length > 0}
+        title={drawerTitle}
+      >
         {renderDrawerContent()}
       </Drawer>
     </div>

@@ -23,6 +23,7 @@ interface SponsorWithLegislator {
   is_primary: boolean;
   session_legislators: {
     legislators: {
+      id: string;
       name: string;
       party_affiliation: string | null;
     };
@@ -80,7 +81,7 @@ export const getBillByNumber = tool(
       .from('bill_sponsors')
       .select(`
         is_primary,
-        session_legislators(legislators(name, party_affiliation))
+        session_legislators(legislators(id, name, party_affiliation))
       `)
       .eq('bill_id', billData.id);
 
@@ -94,7 +95,7 @@ export const getBillByNumber = tool(
 
       const name = leg.name || 'Unknown';
       const party = leg.party_affiliation || '';
-      const sponsorStr = party ? `${name} (${party})` : name;
+      const sponsorStr = party ? `${name} (ID: ${leg.id}) (${party})` : `${name} (ID: ${leg.id})`;
 
       if (sponsor.is_primary) {
         primarySponsors.push(sponsorStr);

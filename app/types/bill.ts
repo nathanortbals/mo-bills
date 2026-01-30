@@ -37,6 +37,7 @@ export interface BillDetails {
     session_code: string;
   } | null;
   sponsors: Array<{
+    id: string;
     name: string;
     party: string | null;
     district: string | null;

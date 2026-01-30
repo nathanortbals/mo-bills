@@ -9,12 +9,13 @@ import BillSponsorsSection from './BillSponsorsSection';
 import BillTimelineSection from './BillTimelineSection';
 import BillDocumentsSection from './BillDocumentsSection';
 
-interface BillDrawerContentProps {
+export interface BillDrawerContentProps {
   billId: string;
   onTitleChange?: (title: string) => void;
+  onNavigate?: (state: { type: 'bill' | 'legislator' | 'document'; id: string }) => void;
 }
 
-export default function BillDrawerContent({ billId, onTitleChange }: BillDrawerContentProps) {
+export default function BillDrawerContent({ billId, onTitleChange, onNavigate }: BillDrawerContentProps) {
   const [bill, setBill] = useState<BillDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +62,7 @@ export default function BillDrawerContent({ billId, onTitleChange }: BillDrawerC
     <div className="space-y-6">
       <BillHeader bill={bill} />
       <BillDetailsSection bill={bill} submittedDate={submittedDate} />
-      <BillSponsorsSection sponsors={bill.sponsors} />
+      <BillSponsorsSection sponsors={bill.sponsors} onSponsorClick={onNavigate} />
       <BillTimelineSection timeline={bill.timeline} chamber={bill.chamber} />
       <BillDocumentsSection documents={bill.documents} />
     </div>

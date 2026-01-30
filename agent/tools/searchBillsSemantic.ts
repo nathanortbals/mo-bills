@@ -17,7 +17,9 @@ interface BillEmbeddingMetadata {
   bill_number?: string;
   session_year?: number;
   session_code?: string;
+  primary_sponsor_id?: string;
   primary_sponsor_name?: string;
+  cosponsor_ids?: string[];
   cosponsor_names?: string[];
   committee_names?: string[];
   content_type?: string;
@@ -108,10 +110,25 @@ export const searchBillsSemantic = tool(
         const content = doc.pageContent || '';
         const billData = billsMap.get(meta.bill_id || '');
 
-        // Build co-sponsors string if available
-        const cosponsors = meta.cosponsor_names ? meta.cosponsor_names.slice(0, 3).join(', ') : '';
-        const cosponsorsStr = cosponsors
-          ? `\nCo-sponsors: ${cosponsors}${(meta.cosponsor_names?.length ?? 0) > 3 ? ' (+ more)' : ''}`
+        // Build sponsor string with ID for clickable links
+        const sponsorStr = meta.primary_sponsor_name
+          ? meta.primary_sponsor_id
+            ? `${meta.primary_sponsor_name} (ID: ${meta.primary_sponsor_id})`
+            : meta.primary_sponsor_name
+          : 'Unknown';
+
+        // Build co-sponsors string with IDs if available
+        const cosponsorsList: string[] = [];
+        if (meta.cosponsor_names && meta.cosponsor_names.length > 0) {
+          const maxCosponsors = 3;
+          for (let i = 0; i < Math.min(meta.cosponsor_names.length, maxCosponsors); i++) {
+            const name = meta.cosponsor_names[i];
+            const id = meta.cosponsor_ids?.[i];
+            cosponsorsList.push(id ? `${name} (ID: ${id})` : name);
+          }
+        }
+        const cosponsorsStr = cosponsorsList.length > 0
+          ? `\nCo-sponsors: ${cosponsorsList.join(', ')}${(meta.cosponsor_names?.length ?? 0) > 3 ? ' (+ more)' : ''}`
           : '';
 
         // Build committees string if available
@@ -131,7 +148,7 @@ export const searchBillsSemantic = tool(
         return `Bill: ${meta.bill_number || 'Unknown'} (ID: ${meta.bill_id || 'unknown'})
 Session: ${meta.session_year} ${meta.session_code || ''}
 Document Type: ${meta.content_type || 'Unknown'}
-Sponsor: ${meta.primary_sponsor_name || 'Unknown'}${cosponsorsStr}${committeesStr}
+Sponsor: ${sponsorStr}${cosponsorsStr}${committeesStr}
 Similarity: ${similarity.toFixed(2)}
 ${summarySection}Matched Content: ${content.substring(0, 300)}...
 ---`;
