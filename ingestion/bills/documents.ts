@@ -24,9 +24,11 @@ export async function downloadBillDocuments(
   outputDir: string
 ): Promise<DocumentInfo[]> {
   if (!documents || documents.length === 0) {
+    console.log(`  [${billNumber}] No documents to download`);
     return [];
   }
 
+  console.log(`  [${billNumber}] Downloading ${documents.length} document(s)...`);
   const documentInfo: DocumentInfo[] = [];
 
   // Create output directory for this bill
@@ -41,7 +43,7 @@ export async function downloadBillDocuments(
     const filepath = path.join(billDir, filename);
 
     try {
-      console.log(`    Downloading ${doc_id} (${type} - ${title})...`);
+      console.log(`  [${billNumber}] Downloading ${doc_id} (${type} - ${title})...`);
       const response = await axios.get(url, {
         responseType: 'arraybuffer',
         timeout: 30000,
@@ -50,7 +52,6 @@ export async function downloadBillDocuments(
       // Save PDF locally
       const pdfContent = Buffer.from(response.data);
       await fs.writeFile(filepath, pdfContent);
-      console.log(`    Saved locally to ${filepath}`);
 
       // Extract text from PDF in-memory
       let extractedText: string | null = null;
@@ -64,9 +65,9 @@ export async function downloadBillDocuments(
         } finally {
           console.warn = originalWarn;
         }
-        console.log(`    ✓ Extracted ${extractedText.length} characters of text`);
+        console.log(`  [${billNumber}] ✓ ${doc_id}: Extracted ${extractedText.length} chars`);
       } catch (error) {
-        console.log(`    Warning: Could not extract text from PDF: ${error}`);
+        console.log(`  [${billNumber}] Warning: Could not extract text from ${doc_id}: ${error}`);
       }
 
       documentInfo.push({
@@ -78,7 +79,7 @@ export async function downloadBillDocuments(
         extracted_text: extractedText,
       });
     } catch (error) {
-      console.log(`    Error downloading ${doc_id}: ${error}`);
+      console.log(`  [${billNumber}] Error downloading ${doc_id}: ${error}`);
     }
   }
 

@@ -219,41 +219,45 @@ export async function scrapeBillDetails(
       }
     }
 
-    // Extract bill documents from definition list structure
-    // DOM structure: <dt>1542H.01I</dt><dd><a href="...">Introduced</a></dd>
-    // doc_id comes from <dt>, title from link text, type from URL path
-    const billDocuments = document.getElementById('BillDocuments');
-    if (billDocuments) {
-      const dtElements = Array.from(billDocuments.querySelectorAll('dt'));
-      for (const dt of dtElements) {
-        const docId = dt.textContent?.trim() || '';
-        if (!docId) continue;
+    // Extract bill documents from DocRows structure
+    // DOM structure:
+    //   <div id="DocRows">
+    //     <div class="DocHeaderRow"><h2>Bill Text</h2></div>
+    //     <div class="DocRow">
+    //       <div class="DocInfoCell">
+    //         <div class="textLR">5106H.01I</div>
+    //         <div class="textType"><a href="...pdf">Introduced</a></div>
+    //       </div>
+    //     </div>
+    //   </div>
+    const docRows = document.getElementById('DocRows');
+    if (docRows) {
+      const rows = Array.from(docRows.querySelectorAll('.DocRow'));
+      for (const row of rows) {
+        const docIdEl = row.querySelector('.textLR');
+        const linkEl = row.querySelector('.textType a') as HTMLAnchorElement | null;
 
-        // Find the next <dd> sibling with a PDF link
-        let nextSibling = dt.nextElementSibling;
-        while (nextSibling && nextSibling.tagName === 'DD') {
-          const pdfLink = nextSibling.querySelector('a[href*=".pdf"]') as HTMLAnchorElement | null;
-          if (pdfLink) {
-            const docUrl = pdfLink.href;
-            const docTitle = pdfLink.textContent?.trim() || '';
+        if (!linkEl) continue;
 
-            // Skip Roll Call and Witnesses documents
-            if (docTitle.indexOf('Roll Call') === -1 && docTitle.indexOf('Witnesses') === -1) {
-              // Determine document type from URL path: sumpdf = summary, hlrbillspdf = bill text
-              const isSummary = docUrl.includes('/sumpdf/');
-              const docType = isSummary ? 'Bill Summary' : 'Bill Text';
+        const docUrl = linkEl.href;
+        const docTitle = linkEl.textContent?.trim() || '';
+        const docId = docIdEl?.textContent?.trim() || docTitle;
 
-              result.bill_documents.push({
-                doc_id: docId,
-                type: docType,
-                title: docTitle,
-                url: docUrl,
-              });
-            }
-            break; // Only take the first PDF link per <dt>
-          }
-          nextSibling = nextSibling.nextElementSibling;
-        }
+        // Skip Testimony (witnesses) and Fiscal Notes (.ORG files)
+        const isTestimony = docUrl.includes('/witnesses/');
+        const isFiscalNote = docUrl.includes('/fiscal/') || docUrl.includes('.ORG');
+        if (isTestimony || isFiscalNote) continue;
+
+        // Determine document type from URL path
+        const isSummary = docUrl.includes('/sumpdf/');
+        const docType = isSummary ? 'Bill Summary' : 'Bill Text';
+
+        result.bill_documents.push({
+          doc_id: docId,
+          type: docType,
+          title: docTitle,
+          url: docUrl,
+        });
       }
     }
 

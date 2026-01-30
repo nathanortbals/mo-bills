@@ -413,6 +413,8 @@ export async function scrapeBillsForSession(
 
       try {
         const details = await scrapeBillDetails(page, billNumber, year, sessionCode);
+        const docCount = details.bill_documents?.length || 0;
+        console.log(`  Found ${docCount} document(s)`);
 
         // Scrape co-sponsors
         let cosponsors = '';
