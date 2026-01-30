@@ -200,22 +200,65 @@ export async function scrapeBillDetails(
       }
     }
 
-    // Extract bill documents
+    // Extract bill documents - distinguish "Bill Text" from "Bill Summary" sections
     const billDocuments = document.getElementById('BillDocuments');
     const documentStrings: string[] = [];
     if (billDocuments) {
-      const docLinks = Array.from(billDocuments.querySelectorAll('a[href*=".pdf"]'));
-      for (let i = 0; i < docLinks.length; i++) {
-        const link = docLinks[i];
-        const docType = link.textContent?.trim() || '';
-        const docUrl = (link as HTMLAnchorElement).href;
-        if (
-          docType &&
-          docUrl &&
-          docType.indexOf('Roll Call') === -1 &&
-          docType.indexOf('Witnesses') === -1
-        ) {
-          documentStrings.push(docType + ' | ' + docUrl);
+      // Find all section headers to determine boundaries
+      const allElements = Array.from(billDocuments.children);
+      let currentSection: 'bill_text' | 'bill_summary' | null = null;
+
+      for (const element of allElements) {
+        const text = element.textContent?.trim() || '';
+
+        // Check for section headers
+        if (text === 'Bill Text' || text.startsWith('Bill Text')) {
+          currentSection = 'bill_text';
+          continue;
+        }
+        if (text === 'Bill Summary' || text.startsWith('Bill Summary')) {
+          currentSection = 'bill_summary';
+          continue;
+        }
+
+        // Extract documents with appropriate prefix based on section
+        if (currentSection) {
+          const docLinks = Array.from(element.querySelectorAll('a[href*=".pdf"]'));
+          for (const link of docLinks) {
+            const docType = link.textContent?.trim() || '';
+            const docUrl = (link as HTMLAnchorElement).href;
+            if (
+              docType &&
+              docUrl &&
+              docType.indexOf('Roll Call') === -1 &&
+              docType.indexOf('Witnesses') === -1
+            ) {
+              // Prefix summary documents to distinguish them
+              const finalDocType =
+                currentSection === 'bill_summary' ? `Summary - ${docType}` : docType;
+              documentStrings.push(finalDocType + ' | ' + docUrl);
+            }
+          }
+        }
+      }
+
+      // Fallback: if no sections found, use URL pattern to distinguish
+      if (documentStrings.length === 0) {
+        const docLinks = Array.from(billDocuments.querySelectorAll('a[href*=".pdf"]'));
+        for (const link of docLinks) {
+          const docType = link.textContent?.trim() || '';
+          const docUrl = (link as HTMLAnchorElement).href;
+          if (
+            docType &&
+            docUrl &&
+            docType.indexOf('Roll Call') === -1 &&
+            docType.indexOf('Witnesses') === -1
+          ) {
+            // Use URL pattern: sumpdf = summary, hlrbillspdf = bill text
+            const isSummary = docUrl.includes('sumpdf');
+            const finalDocType = isSummary ? `Summary - ${docType}` : docType;
+            documentStrings.push(finalDocType + ' | ' + docUrl);
+          }
         }
       }
     }
