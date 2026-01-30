@@ -60,42 +60,47 @@ export const getLegislatorInfo = tool(
       return `No legislator found matching '${name}'. Try searching with a different spelling or just the last name.`;
     }
 
-    if (legislators.length > 1) {
-      const names = legislators.slice(0, 10).map((leg) => leg.name);
-      return `Multiple legislators found: ${names.join(', ')}. Please be more specific.`;
+    // Get district info for all matching legislators (up to 5)
+    const topMatches = legislators.slice(0, 5);
+    const results: string[] = [];
+
+    for (const leg of topMatches) {
+      // Get current district from most recent session
+      const { data: sessionLegData } = await supabase
+        .from('session_legislators')
+        .select(`
+          district,
+          sessions(year, session_code)
+        `)
+        .eq('legislator_id', leg.id)
+        .order('sessions(year)', { ascending: false })
+        .limit(1);
+
+      const typedSessionLeg = sessionLegData as unknown as SessionLegislatorWithSession[];
+      const currentDistrict = typedSessionLeg?.[0]?.district;
+      const sessionInfo = typedSessionLeg?.[0]?.sessions;
+
+      const districtStr = currentDistrict
+        ? `District ${currentDistrict}${sessionInfo ? ` (${sessionInfo.year})` : ''}`
+        : 'No district info';
+
+      const result = `- ${leg.name} (ID: ${leg.id})
+  ${leg.party_affiliation || 'Unknown party'} | ${districtStr} | ${leg.is_active ? 'Active' : 'Inactive'}
+  Type: ${leg.legislator_type || 'N/A'} | Years Served: ${leg.years_served || 'N/A'}`;
+
+      results.push(result);
     }
 
-    const leg = legislators[0];
+    const header = legislators.length === 1
+      ? `Found 1 legislator matching '${name}':`
+      : `Found ${legislators.length} legislators matching '${name}' (showing top ${topMatches.length}):`;
 
-    // Get current district from most recent session
-    const { data: sessionLegData } = await supabase
-      .from('session_legislators')
-      .select(`
-        district,
-        sessions(year, session_code)
-      `)
-      .eq('legislator_id', leg.id)
-      .order('sessions(year)', { ascending: false })
-      .limit(1);
-
-    const typedSessionLeg = sessionLegData as unknown as SessionLegislatorWithSession[];
-    const currentDistrict = typedSessionLeg?.[0]?.district;
-    const sessionInfo = typedSessionLeg?.[0]?.sessions;
-
-    const result = `Legislator: ${leg.name} (ID: ${leg.id})
-District: ${currentDistrict ? `${currentDistrict}${sessionInfo ? ` (${sessionInfo.year} ${sessionInfo.session_code})` : ''}` : 'N/A'}
-Type: ${leg.legislator_type || 'N/A'}
-Party: ${leg.party_affiliation || 'N/A'}
-Year Elected: ${leg.year_elected || 'N/A'}
-Years Served: ${leg.years_served || 'N/A'}
-Status: ${leg.is_active ? 'Active' : 'Inactive'}`;
-
-    return result.trim();
+    return `${header}\n\n${results.join('\n\n')}`;
   },
   {
     name: 'get_legislator_info',
     description:
-      'Get information about a legislator including their district. Use this when the user asks about a specific legislator or representative. Supports fuzzy matching for misspelled names. Examples: "Who is Rep. Smith?", "Tell me about Jane Doe", "Who represents district 42?"',
+      'Get information about legislators matching a name. Returns up to 5 matches with party, district, and status. Use this when the user asks about a specific legislator or representative. Supports fuzzy matching for misspelled or partial names. Examples: "Who is Rep. Smith?", "Tell me about Jane Doe"',
     schema: z.object({
       name: z.string().describe('Legislator name (full or partial, typos tolerated)'),
     }),

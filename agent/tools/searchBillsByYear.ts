@@ -35,7 +35,13 @@ export const searchBillsByYear = tool(
       return `No session found for year ${sessionYear}.`;
     }
 
-    // Get bills
+    // First get total count
+    const { count: totalCount } = await supabase
+      .from('bills')
+      .select('id', { count: 'exact', head: true })
+      .eq('session_id', sessionData.id);
+
+    // Get bills with limit
     const { data, error } = await supabase
       .from('bills')
       .select(`
@@ -57,7 +63,13 @@ export const searchBillsByYear = tool(
       return `${bill.bill_number} (ID: ${bill.id}) - ${sessions?.year} ${sessions?.session_code}: ${bill.title || 'No title'}`;
     });
 
-    return results.join('\n');
+    const total = totalCount || data.length;
+    const hasMore = total > limit;
+    const header = hasMore
+      ? `Found ${total} bills for ${sessionYear}. Showing ${limit}:\n\n`
+      : `Found ${total} bill${total === 1 ? '' : 's'} for ${sessionYear}:\n\n`;
+
+    return header + results.join('\n');
   },
   {
     name: 'search_bills_by_year',

@@ -88,7 +88,7 @@ export const getLegislatorBills = tool(
       sponsorQuery = sponsorQuery.eq('is_primary', true);
     }
 
-    const { data: sponsoredBills, error } = await sponsorQuery.limit(50);
+    const { data: sponsoredBills, error } = await sponsorQuery;
 
     if (error) {
       console.error('Error fetching sponsored bills:', error);
@@ -119,14 +119,11 @@ export const getLegislatorBills = tool(
     if (includeCosponsored && coBills.length > 0) {
       results.push('');
       results.push(`**Co-Sponsor (${coBills.length} bills):**`);
-      coBills.slice(0, 20).forEach((b) => {
+      coBills.forEach((b) => {
         const bill = b.bills!;
         const session = bill.sessions;
         results.push(`- ${bill.bill_number} (ID: ${bill.id}) (${session?.year} ${session?.session_code}): ${bill.title || bill.description || 'No title'}`);
       });
-      if (coBills.length > 20) {
-        results.push(`... and ${coBills.length - 20} more co-sponsored bills`);
-      }
     }
 
     return `Bills for ${legislator.name}${sessionYear ? ` (${sessionYear})` : ''}:\n\n${results.join('\n')}`;

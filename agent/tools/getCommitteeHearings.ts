@@ -79,7 +79,7 @@ export const getCommitteeHearings = tool(
       query = query.eq('committee_id', committeeData.id);
     }
 
-    const { data, error } = await query.limit(20);
+    const { data, error } = await query;
 
     if (error || !data || data.length === 0) {
       return 'No hearings found.';
